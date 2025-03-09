@@ -1,0 +1,20 @@
+.modal-xl {
+    max-width: 1140px !important;
+  }
+  
+  .detail-mau-sac .container {
+    border: 1px solid black;
+  }
+  
+  .form-control {
+    margin-bottom: 1rem;
+  }
+  
+  .btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+  }
+  
+  .ml-2 {
+    margin-left: 0.5rem;
+  }
