@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -6,48 +5,40 @@ import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+// Định nghĩa interface mới cho dữ liệu từ API
+interface ApiProduct {
+  id: string;
+  name: string;
+  thuongHieu: string;
+  loaiSanPham: string;
+  kichThuoc: string[];
+  soLuong: number;
+  donGia: number;
+  moTa: string | null;
+  chatLieu: string;
+  mauSac: string[];
+  hinh: string[]; // Giả sử dữ liệu binary được trả về dưới dạng base64 string
+  ngayTao: string;
+  trangThai: number;
+}
+
+// Interface cho ProductCard
 interface Product {
-  id: number;
+  id: string;
   name: string;
   description: string;
   imageSrc: string;
   colorClass: string;
   price: number;
+  chatlieu: string;
+  thuonghieu: string;
 }
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Premium Experience",
-    description: "A beautifully crafted product with attention to every detail.",
-    imageSrc: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Ccircle cx='200' cy='150' r='80' fill='%238B5CF6' fill-opacity='0.2'/%3E%3Cpath d='M160 150 Q 200 100, 240 150 T 320 150' stroke='%238B5CF6' fill='transparent' stroke-width='2'/%3E%3C/svg%3E",
-    colorClass: "from-purple-500 to-indigo-500",
-    price: 199.99,
-  },
-  {
-    id: 2,
-    name: "Seamless Integration",
-    description: "Works perfectly with your existing tools and workflow.",
-    imageSrc: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Crect x='120' y='100' width='70' height='100' fill='%23D946EF' fill-opacity='0.2'/%3E%3Crect x='210' y='100' width='70' height='100' fill='%23D946EF' fill-opacity='0.2'/%3E%3Cline x1='190' y1='150' x2='210' y2='150' stroke='%23D946EF' stroke-width='2'/%3E%3C/svg%3E",
-    colorClass: "from-pink-500 to-rose-500",
-    price: 149.99,
-  },
-  {
-    id: 3,
-    name: "Intuitive Design",
-    description: "Easy to use with a minimal learning curve for all users.",
-    imageSrc: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Cpolygon points='200,80 240,150 200,220 160,150' fill='%238B5CF6' fill-opacity='0.2'/%3E%3Ccircle cx='200' cy='150' r='30' fill='%23f1f5f9' stroke='%238B5CF6' stroke-width='2'/%3E%3C/svg%3E",
-    colorClass: "from-violet-500 to-purple-500",
-    price: 129.99,
-  }
-];
 
 const ProductCard = ({ product, index }: { product: Product; index: number }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const addToCart = () => {
-    // In a real app, this would add the product to the cart state
     toast.success(`${product.name} added to cart!`);
   };
 
@@ -81,23 +72,28 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
     >
       <div className={`aspect-video overflow-hidden bg-gradient-to-r ${product.colorClass}`}>
         <img 
-          src={product.imageSrc} 
+          src={
+            product.imageSrc && product.imageSrc
+              ? `data:image/jpeg;base64,${product.imageSrc}`
+              : "/placeholder-image.jpg" 
+          }
           alt={product.name} 
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 mix-blend-overlay"
+          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 "
         />
       </div>
       <div className="p-6 flex flex-col flex-1">
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-xl font-medium">{product.name}</h3>
-          <span className="font-medium text-primary">${product.price}</span>
+          <span className="font-medium text-primary">{product.price} VND</span>
         </div>
-        <p className="text-muted-foreground flex-1">{product.description}</p>
+        <p className="text-muted-foreground flex-1"><strong>Chất Liệu: </strong>{product.chatlieu}</p>
+        <p className="text-muted-foreground flex-1"><strong>Thương Hiệu: </strong>{product.thuonghieu}</p>
         <div className="mt-6 flex gap-2">
           <Link 
             to={`/product/${product.id}`}
             className="text-primary font-medium hover-effect hover:opacity-80"
           >
-            View details
+            Chi Tiết
           </Link>
           <Button 
             variant="outline" 
@@ -106,7 +102,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
             onClick={addToCart}
           >
             <ShoppingCart className="h-4 w-4 mr-1" /> 
-            Add to Cart
+            Thêm Vào Giỏ Hàng
           </Button>
         </div>
       </div>
@@ -115,13 +111,77 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
 };
 
 const ProductShowcase = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const transformApiData = (apiData: ApiProduct[]): Product[] => {
+    const colorClasses = [
+      "from-purple-500 to-indigo-500",
+      "from-pink-500 to-rose-500",
+      "from-violet-500 to-purple-500"
+    ];
+
+    return apiData.map((item, index) => ({
+      id: item.id,
+      name: item.name,
+      description: item.moTa || `Thương hiệu: ${item.thuongHieu} <br/> Chất liệu: ${item.chatLieu}`,
+      chatlieu: item.chatLieu,
+      thuonghieu: item.thuongHieu,
+      imageSrc: item.hinh[0] || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3C/svg%3E",
+      colorClass: colorClasses[index % colorClasses.length],
+      price: item.donGia 
+    }));
+  };
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("http://localhost:5261/api/SanPham/ListSanPham");
+        if (!response.ok) {
+          throw new Error("Failed to fetch products");
+        }
+        const data: ApiProduct[] = await response.json();
+        const transformedProducts = transformApiData(data);
+        setProducts(transformedProducts);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-24 px-6 bg-gradient-to-b from-white to-secondary/30">
+        <div className="container mx-auto max-w-6xl text-center">
+          <p>Loading products...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-24 px-6 bg-gradient-to-b from-white to-secondary/30">
+        <div className="container mx-auto max-w-6xl text-center">
+          <p className="text-red-500">Error: {error}</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="products" className="py-24 px-6 bg-gradient-to-b from-white to-secondary/30">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-medium mb-4 gradient-text">Our Products</h2>
+          <h2 className="text-3xl md:text-4xl font-medium mb-4 gradient-text">Danh Sách Sản phẩm</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Discover our range of thoughtfully designed products that combine elegance with functionality.
+            Tìm kiếm các sản phẩm thời trang may mặc của cửa hàng chúng tôi.
           </p>
         </div>
         

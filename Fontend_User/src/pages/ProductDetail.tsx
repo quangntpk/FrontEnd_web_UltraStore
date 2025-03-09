@@ -1,87 +1,144 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react"; 
 import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Heart, ShoppingBag, Star } from "lucide-react";
 
-// Mock product data - in a real app this would come from an API
-const products = [
-  {
-    id: "1",
-    name: "Premium Summer Dress",
-    description: "A beautiful summer dress made with sustainable fabrics. Perfect for warm days and special occasions.",
-    price: 129.99,
-    rating: 4.8,
-    colors: ["#F8B195", "#F67280", "#C06C84"],
-    sizes: ["XS", "S", "M", "L", "XL"],
-    images: [
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M200,150 L250,300 L200,450 L150,300 Z' fill='%23D946EF' fill-opacity='0.2'/%3E%3Crect x='170' y='100' width='60' height='50' fill='%23D946EF' fill-opacity='0.3'/%3E%3C/svg%3E",
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M200,150 L250,300 L200,450 L150,300 Z' fill='%238B5CF6' fill-opacity='0.2'/%3E%3Crect x='170' y='100' width='60' height='50' fill='%238B5CF6' fill-opacity='0.3'/%3E%3C/svg%3E",
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M200,150 L250,300 L200,450 L150,300 Z' fill='%23F67280' fill-opacity='0.2'/%3E%3Crect x='170' y='100' width='60' height='50' fill='%23F67280' fill-opacity='0.3'/%3E%3C/svg%3E",
-    ],
-    details: [
-      "100% sustainable cotton",
-      "Ethically manufactured",
-      "Adjustable waist tie",
-      "Machine washable",
-      "Model wears size S"
-    ]
-  },
-  {
-    id: "2",
-    name: "Designer Casual Shirt",
-    description: "A premium casual shirt with a modern cut. Versatile enough for both casual and semi-formal occasions.",
-    price: 89.99,
-    rating: 4.6,
-    colors: ["#355C7D", "#6C5B7B", "#C06C84"],
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    images: [
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M150,150 L250,150 L250,450 L150,450 Z' fill='%236C5B7B' fill-opacity='0.2'/%3E%3Crect x='170' y='100' width='60' height='50' fill='%236C5B7B' fill-opacity='0.3'/%3E%3C/svg%3E",
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M150,150 L250,150 L250,450 L150,450 Z' fill='%23355C7D' fill-opacity='0.2'/%3E%3Crect x='170' y='100' width='60' height='50' fill='%23355C7D' fill-opacity='0.3'/%3E%3C/svg%3E",
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M150,150 L250,150 L250,450 L150,450 Z' fill='%23C06C84' fill-opacity='0.2'/%3E%3Crect x='170' y='100' width='60' height='50' fill='%23C06C84' fill-opacity='0.3'/%3E%3C/svg%3E",
-    ],
-    details: [
-      "Premium cotton blend",
-      "Regular fit",
-      "Button-down collar",
-      "Machine washable at 30°C",
-      "Model wears size M"
-    ]
-  },
-  {
-    id: "3",
-    name: "Luxury Evening Gown",
-    description: "An elegant evening gown perfect for special occasions. Features intricate detailing and a flattering silhouette.",
-    price: 249.99,
-    rating: 4.9,
-    colors: ["#8B5CF6", "#D946EF", "#EC4899"],
-    sizes: ["XS", "S", "M", "L"],
-    images: [
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M200,100 L230,150 L200,500 L170,150 Z' fill='%238B5CF6' fill-opacity='0.2'/%3E%3Cellipse cx='200' cy='120' rx='30' ry='20' fill='%238B5CF6' fill-opacity='0.3'/%3E%3C/svg%3E",
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M200,100 L230,150 L200,500 L170,150 Z' fill='%23D946EF' fill-opacity='0.2'/%3E%3Cellipse cx='200' cy='120' rx='30' ry='20' fill='%23D946EF' fill-opacity='0.3'/%3E%3C/svg%3E",
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'%3E%3Crect width='400' height='600' fill='%23f8f9fa'/%3E%3Cpath d='M200,100 L230,150 L200,500 L170,150 Z' fill='%23EC4899' fill-opacity='0.2'/%3E%3Cellipse cx='200' cy='120' rx='30' ry='20' fill='%23EC4899' fill-opacity='0.3'/%3E%3C/svg%3E",
-    ],
-    details: [
-      "Premium silk blend",
-      "Fitted silhouette",
-      "Hand-sewn embellishments",
-      "Dry clean only",
-      "Model wears size S"
-    ]
-  }
-];
-
 const ProductDetail = () => {
   const { productId } = useParams();
+  const [products, setProducts] = useState([]);
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+  const [selectedSizeIndex, setSelectedSizeIndex] = useState(null); // Thêm state cho kích thước được chọn
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(0);
-  const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Find the product by ID
-  const product = products.find(p => p.id === productId) || products[0];
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!productId) {
+        setError("Product ID is missing");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const baseProductId = productId.split('_')[0] || productId;
+        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${baseProductId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch product');
+        }
+        const data = await response.json();
+        const productArray = Array.isArray(data) ? data : [data];
+
+        const formattedProducts = productArray.map(product => {
+          const [baseId, colorCode] = product.id.split('_');
+          return {
+            id: product.id,
+            baseId,
+            colorCode,
+            name: product.tenSanPham,
+            description: product.moTa || "Không có mô tả",
+            price: product.details[0]?.gia / 1000 || 0,
+            rating: 4.5,
+            color: `#${product.mauSac || colorCode}`,
+            sizes: product.details.map(detail => ({
+              size: detail.kichThuoc.trim(),
+              quantity: detail.soLuong,
+              price: detail.gia / 1000
+            })),
+            material: product.chatLieu,
+            brand: product.maThuongHieu,
+            productType: product.loaiSanPham,
+            images: product.hinhAnhs?.map(base64 => 
+              `data:image/jpeg;base64,${base64}`
+            ) || []
+          };
+        });
+
+        setProducts(formattedProducts);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId]);
+
+  const getUniqueColorList = () => {
+    const colorMap = new Map();
+    products.forEach(product => {
+      colorMap.set(product.color, product.id);
+    });
+    return Array.from(colorMap.entries()).map(([color, id]) => ({ id, color }));
+  };
+
+  const getSizesForColor = () => {
+    return products[selectedColorIndex].sizes;
+  };
+
+  const handleAddToCart = async () => {
+    if (selectedSizeIndex === null) {
+      alert("Vui lòng chọn kích thước trước khi thêm vào giỏ hàng!");
+      return;
+    }
+
+    const selectedProduct = products[selectedColorIndex];
+    const selectedSize = selectedProduct.sizes[selectedSizeIndex];
+
+    const cartData = {
+      IDNguoiDung: "KH0001", 
+      IDSanPham: productId.split('_')[0] || productId, 
+      MauSac: selectedProduct.colorCode, 
+      KichThuoc: selectedSize.size, 
+      SoLuong: quantity 
+    };
+
+    try {
+      const response = await fetch("http://localhost:5261/api/Cart/ThemSanPhamVaoGioHang", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(cartData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add to cart");
+      }
+      alert("Đã thêm vào giỏ hàng thành công!");
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="pt-24 pb-16 px-6 min-h-screen flex items-center justify-center">
+        <p>Loading product details...</p>
+      </div>
+    );
+  }
+
+  if (error || !products.length) {
+    return (
+      <div className="pt-24 pb-16 px-6 min-h-screen flex items-center justify-center">
+        <p>Error: {error || "Product not found"}</p>
+      </div>
+    );
+  }
+
+  const baseProduct = products[0];
+  const currentProduct = products[selectedColorIndex];
+  const availableSizes = getSizesForColor();
+  const selectedPrice = selectedSizeIndex !== null 
+    ? currentProduct.sizes[selectedSizeIndex].price 
+    : currentProduct.price; // Giá thay đổi theo kích thước
 
   return (
     <>
@@ -94,14 +151,14 @@ const ProductDetail = () => {
             <div className="space-y-4">
               <div className="rounded-xl overflow-hidden border border-border bg-white shadow-sm">
                 <img 
-                  src={product.images[selectedImage]} 
-                  alt={product.name} 
+                  src={baseProduct.images[selectedImage]} 
+                  alt={baseProduct.name} 
                   className="w-full aspect-[4/5] object-cover"
                 />
               </div>
               
               <div className="flex gap-3 overflow-auto pb-2">
-                {product.images.map((image, index) => (
+                {baseProduct.images.map((image, index) => (
                   <button
                     key={index}
                     className={cn(
@@ -114,7 +171,7 @@ const ProductDetail = () => {
                   >
                     <img 
                       src={image} 
-                      alt={`${product.name} thumbnail ${index + 1}`} 
+                      alt={`${baseProduct.name} thumbnail ${index + 1}`} 
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -125,7 +182,7 @@ const ProductDetail = () => {
             {/* Product Details */}
             <div className="flex flex-col space-y-6">
               <div>
-                <h1 className="text-3xl md:text-4xl font-medium mb-2 gradient-text">{product.name}</h1>
+                <h1 className="text-3xl md:text-4xl font-medium mb-2 gradient-text">{baseProduct.name}</h1>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex">
                     {Array.from({ length: 5 }).map((_, index) => (
@@ -133,67 +190,69 @@ const ProductDetail = () => {
                         key={index} 
                         className={cn(
                           "w-4 h-4", 
-                          index < Math.floor(product.rating) 
+                          index < Math.floor(baseProduct.rating) 
                             ? "fill-yellow-400 text-yellow-400" 
                             : "text-muted-foreground"
                         )}
                       />
                     ))}
                   </div>
-                  <span className="text-sm font-medium">{product.rating}</span>
+                  <span className="text-sm font-medium">{baseProduct.rating}</span>
                 </div>
-                <p className="text-2xl font-medium text-primary mb-4">${product.price.toFixed(2)}</p>
-                <p className="text-muted-foreground">{product.description}</p>
+                <p className="text-2xl font-medium text-primary mb-4">${selectedPrice.toFixed(2)}</p>
+                <p className="text-muted-foreground">{baseProduct.description}</p>
               </div>
               
               {/* Colors */}
               <div>
-                <h3 className="text-sm font-medium mb-3">Colors</h3>
+                <h3 className="text-sm font-medium mb-3">Màu Sắc</h3>
                 <div className="flex gap-3">
-                  {product.colors.map((color, index) => (
+                  {getUniqueColorList().map((item, index) => (
                     <button
-                      key={index}
+                      key={item.id}
                       className={cn(
                         "w-8 h-8 rounded-full transition-all",
-                        selectedColor === index 
+                        selectedColorIndex === index 
                           ? "ring-2 ring-offset-2 ring-primary" 
                           : "ring-1 ring-border hover:ring-primary"
                       )}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setSelectedColor(index)}
-                      aria-label={`Select color ${index + 1}`}
+                      style={{ backgroundColor: item.color }}
+                      onClick={() => {
+                        setSelectedColorIndex(index);
+                        setSelectedSizeIndex(null); 
+                      }}
+                      aria-label={`Select color ${item.color}`}
                     />
                   ))}
                 </div>
               </div>
               
-              {/* Sizes */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-medium">Size</h3>
-                  <button className="text-xs text-primary hover:underline">Size Guide</button>
+              {/* Available Sizes */}
+              {currentProduct && (
+                <div>
+                  <h3 className="text-sm font-medium mb-3">Kích Thước</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.map((sizeObj, index) => (
+                      <button
+                        key={index}
+                        className={cn(
+                          "h-10 min-w-[40px] px-3 rounded border text-sm font-medium transition-all",
+                          selectedSizeIndex === index 
+                            ? "border-primary bg-primary/10 shadow-lg" 
+                            : "border-border hover:border-primary/50"
+                        )}
+                        onClick={() => setSelectedSizeIndex(index)}
+                      >
+                        {sizeObj.size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((size) => (
-                    <button
-                      key={size}
-                      className={cn(
-                        "h-10 min-w-[40px] px-3 rounded border text-sm font-medium transition-all",
-                        selectedSize === size 
-                          ? "border-primary bg-primary text-white" 
-                          : "border-border hover:border-primary/50"
-                      )}
-                      onClick={() => setSelectedSize(size)}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
               
               {/* Quantity */}
               <div>
-                <h3 className="text-sm font-medium mb-3">Quantity</h3>
+                <h3 className="text-sm font-medium mb-3">Số Lượng</h3>
                 <div className="flex items-center border border-border rounded-md w-32">
                   <button 
                     className="w-10 h-10 flex items-center justify-center text-lg"
@@ -205,7 +264,10 @@ const ProductDetail = () => {
                   <div className="flex-1 text-center">{quantity}</div>
                   <button 
                     className="w-10 h-10 flex items-center justify-center text-lg"
-                    onClick={() => setQuantity(quantity + 1)}
+                    onClick={() => setQuantity(Math.min(
+                      selectedSizeIndex !== null ? availableSizes[selectedSizeIndex].quantity : currentProduct.sizes[0].quantity, 
+                      quantity + 1
+                    ))}
                   >
                     +
                   </button>
@@ -214,14 +276,20 @@ const ProductDetail = () => {
               
               {/* Product Features */}
               <div>
-                <h3 className="text-sm font-medium mb-3">Details</h3>
+                <h3 className="text-sm font-medium mb-3">Thông Tin Sản Phẩm</h3>
                 <ul className="space-y-2">
-                  {product.details.map((detail, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
-                      <span className="text-muted-foreground">{detail}</span>
-                    </li>
-                  ))}
+                  <li className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                    <span className="text-muted-foreground">Chất liệu: {baseProduct.material}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                    <span className="text-muted-foreground">Thương hiệu: {baseProduct.brand}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                    <span className="text-muted-foreground">Loại sản phẩm: {baseProduct.productType}</span>
+                  </li>
                 </ul>
               </div>
               
@@ -229,40 +297,15 @@ const ProductDetail = () => {
               <div className="flex flex-col sm:flex-row gap-4 mt-6">
                 <button 
                   className="flex-1 h-12 px-6 gradient-bg text-white rounded-full hover:opacity-90 transition-opacity flex items-center justify-center"
+                  onClick={handleAddToCart}
                 >
                   <ShoppingBag className="mr-2 h-5 w-5" />
-                  Add to Bag
+                  Thêm Vào Giỏ Hàng
                 </button>
                 <button className="h-12 w-12 border border-primary/30 rounded-full hover:bg-primary/5 transition-colors flex items-center justify-center">
                   <Heart className="h-5 w-5" />
                 </button>
               </div>
-            </div>
-          </div>
-          
-          {/* Related Products Section */}
-          <div className="mt-24">
-            <h2 className="text-2xl font-medium mb-8 gradient-text">You May Also Like</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {products.filter(p => p.id !== productId).map((product) => (
-                <a 
-                  key={product.id} 
-                  href={`/product/${product.id}`}
-                  className="group rounded-xl overflow-hidden border border-border colorful-card hover:shadow-md transition-all"
-                >
-                  <div className="aspect-[4/5] overflow-hidden bg-white">
-                    <img 
-                      src={product.images[0]} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">{product.name}</h3>
-                    <p className="text-primary font-medium">${product.price.toFixed(2)}</p>
-                  </div>
-                </a>
-              ))}
             </div>
           </div>
         </div>

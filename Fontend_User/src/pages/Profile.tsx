@@ -26,7 +26,6 @@ const Profile = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
       toast({
         title: "Thông tin đã được cập nhật",

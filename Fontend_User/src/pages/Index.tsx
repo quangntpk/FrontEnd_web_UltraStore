@@ -58,21 +58,21 @@ const Index = () => {
         <section className="py-12 px-6 bg-muted">
           <div className="container mx-auto max-w-6xl">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-              <h2 className="text-2xl font-semibold gradient-text">Browse Our Products</h2>
+              <h2 className="text-2xl font-semibold gradient-text">Tìm kiếm sản phẩm</h2>
               
               <form onSubmit={handleSearch} className="flex w-full md:w-auto">
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search products..."
+                    placeholder="Gõ tên sản phẩm cần tìm"
                     className="pl-8 w-full"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
                 <Button type="submit" size="sm" className="ml-2">
-                  Search
+                  Tìm Kiếm
                 </Button>
                 <Button 
                   type="button" 
@@ -90,12 +90,12 @@ const Index = () => {
               <div className="bg-white p-4 rounded-md shadow-sm mb-8 animate-fade-in">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div>
-                    <Label htmlFor="sort-by">Sort By</Label>
+                    <Label htmlFor="sort-by">Sắp xếp Theo</Label>
                     <Tabs defaultValue={sortOrder} className="w-[250px] mt-2" onValueChange={setSortOrder}>
                       <TabsList>
-                        <TabsTrigger value="featured">Featured</TabsTrigger>
-                        <TabsTrigger value="price-asc">Price: Low to High</TabsTrigger>
-                        <TabsTrigger value="price-desc">Price: High to Low</TabsTrigger>
+                        <TabsTrigger value="featured">Loại Sản Phẩm</TabsTrigger>
+                        <TabsTrigger value="price-asc">Giá: Thấp tới Cao</TabsTrigger>
+                        <TabsTrigger value="price-desc">Giá: Cao xuống thấp</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </div>
