@@ -71,7 +71,7 @@ const Sidebar = () => {
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/orders', icon: ShoppingCart, label: 'Orders' },
     { to: '/products', icon: Package, label: 'Quản lý Sản Phẩm' },
-    { to: '/customers', icon: Users, label: 'Customers' },
+    { to: '/customers', icon: Users, label: 'Tài Khoản' },
     { to: '/analytics', icon: BarChart, label: 'Analytics' },
     { to: '/invoices', icon: FileText, label: 'Quản lý Voucher' },
     { to: '/inventory', icon: Store, label: 'Quản lý bình luận' },
