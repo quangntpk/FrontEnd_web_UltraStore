@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { FaCheck, FaTimes, FaEye, FaTrashAlt } from 'react-icons/fa';
+
 import {
   Card,
   CardContent,
@@ -136,7 +138,7 @@ const Comments = () => {
       (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
       (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
       (item.maSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
-      
+
     );
   });
 
@@ -262,22 +264,24 @@ const Comments = () => {
                           <DropdownMenuContent align="end">
                             {item.trangThai === 0 ? (
                               <DropdownMenuItem onClick={() => handleApproveComment(item)}>
-                                Duyệt
+                                <FaCheck className="mr-2 h-4 w-4 text-green-500" /> Duyệt
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem onClick={() => handleUnapproveComment(item)}>
-                                Hủy Duyệt
+                                <FaTimes className="mr-2 h-4 w-4 text-red-500" /> Hủy Duyệt
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem onClick={() => handleDetailClick(item)}>
-                              Chi Tiết
+                              <FaEye className="mr-2 h-4 w-4 text-blue-500" /> Chi Tiết
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDeleteClick(item)}>
-                              Xóa
+                              <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Xóa
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
+
+
                     </TableRow>
                   ))
                 ) : (
