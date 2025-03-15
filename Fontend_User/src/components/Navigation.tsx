@@ -55,7 +55,7 @@ import axios from "axios";
       console.error("Logout error:", error.response?.data?.message || error.message);
     }
 
-    window.parent.postMessage({ type: "LOGOUT" }, "http://localhost:8081");
+    window.parent.postMessage({ type: "LOGOUT" }, "http://localhost:8080");
 
     localStorage.removeItem("token");
     localStorage.removeItem("userId")
