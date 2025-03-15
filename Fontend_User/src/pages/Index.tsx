@@ -4,6 +4,7 @@ import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import ProductShowcase from "@/components/ProductShowcase";
+import ComboShowcase from "@/components/ComboShowcase";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -106,6 +107,7 @@ const Index = () => {
         </section>
         
         <ProductShowcase />
+        <ComboShowcase />
         <Contact />
       </main>
       <Footer />

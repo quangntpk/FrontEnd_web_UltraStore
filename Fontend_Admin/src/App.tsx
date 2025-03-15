@@ -11,12 +11,11 @@ import Orders from "./pages/Orders";
 import Products from "./pages/Products";
 import Customers from "./pages/Customers";
 import Analytics from "./pages/Analytics";
-import Inventory from "./pages/inventory";
+import Inventory from "./pages/Inventory";
 import Invoices from "./pages/Invoices";
 import Settings from "./pages/Settings";
-import Combos from "./pages/Combos.tsx";
-import ThuongHieu from "./pages/ThuongHieu.tsx";
-import LoaiSanPham from "./pages/LoaiSanPham.tsx";
+import Combos from "./pages/Combos";
+
 // Create placeholder pages for the new routes
 const Payments = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Payments</h1><p>Payments management page coming soon.</p></div>;
 const Marketing = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Marketing</h1><p>Marketing management page coming soon.</p></div>;
@@ -48,8 +47,7 @@ const App = () => (
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/combos" element={<Combos/>} />
-            <Route path="/loaisanpham" element={<LoaiSanPham/>} />
-            <Route path="/thuonghieu" element={<ThuongHieu/>} />
+            
             {/* New routes */}
             <Route path="/payments" element={<Payments />} />
             <Route path="/marketing" element={<Marketing />} />

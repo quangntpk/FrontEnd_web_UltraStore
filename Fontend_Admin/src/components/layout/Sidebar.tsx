@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -5,25 +6,22 @@ import {
   ShoppingCart, 
   Package, 
   Users, 
+  BarChart, 
   Settings, 
   ChevronLeft, 
   ChevronRight,
-  Ticket, // Thay FileText cho Quản lý Voucher
-  MessageSquare, // Thay Store cho Quản lý bình luận
+  FileText,
+  Store,
   CreditCard,
   Mail,
+  MessageSquare,
   Calendar,
   HelpCircle,
   Heart,
   Globe,
   TrendingUp,
   Zap,
-  Shield,
-  ChevronDown,
-  ChevronUp,
-  Tags, // Thay BarChart cho Danh Mục
-  Layers, // Cho Loại Sản Phẩm
-  Award, // Cho Thương Hiệu
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -64,33 +62,20 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
 
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
   };
 
-  const toggleCategory = () => {
-    setIsCategoryOpen(!isCategoryOpen);
-  };
-
   const mainNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/orders', icon: ShoppingCart, label: 'Orders' },
-    { to: '/products', icon: Package, label: 'Quản lý Sản Phẩm' },
-   
-  ];
-
-  const categoryItems = [
-    { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' }, // Icon Layers cho loại
-    { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },     // Icon Award cho thương hiệu
-  ];
-
-  const additionalMainItems = [
-    { to: '/customers', icon: Users, label: 'Tài Khoản' },
-    { to: '/invoices', icon: Ticket, label: 'Quản lý Voucher' },        // Icon Ticket thay FileText
-    { to: '/inventory', icon: MessageSquare, label: 'Quản lý bình luận' }, // Icon MessageSquare thay Store
-    { to: '/combos', icon: Zap, label: 'Quản lý Combo' },              // Giữ Zap vì phù hợp
+    { to: '/products', icon: Package, label: 'Sản Phẩm' },
+    { to: '/customers', icon: Users, label: 'Customers' },
+    { to: '/analytics', icon: BarChart, label: 'Analytics' },
+    { to: '/invoices', icon: FileText, label: 'Invoices' },
+    { to: '/inventory', icon: Store, label: 'Inventory' },
+    { to: '/combos', icon: Zap, label: 'Combo Sản Phẩm'}
   ];
 
   const additionalNavItems = [
@@ -143,59 +128,6 @@ const Sidebar = () => {
         <div className="space-y-1 mb-6">
           {!isCollapsed && <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Main</div>}
           {mainNavItems.map((item) => (
-            <NavItem
-              key={item.to}
-              to={item.to}
-              icon={item.icon}
-              label={item.label}
-              isCollapsed={isCollapsed}
-            />
-          ))}
-          
-          {/* Category Collapse Menu - Đặt dưới Tài Khoản */}
-          <div className={cn(
-            'rounded-md transition-all duration-300',
-            isCollapsed && 'justify-center'
-          )}>
-            <button
-              onClick={toggleCategory}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 w-full text-muted-foreground hover:bg-purple-light hover:text-purple',
-                isCategoryOpen && 'bg-purple-light text-purple'
-              )}
-            >
-              <Tags size={20} className="text-purple" />
-              {!isCollapsed && (
-                <>
-                  <span className="flex-1 text-left">Danh Mục</span>
-                  {isCategoryOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                </>
-              )}
-            </button>
-            
-            {!isCollapsed && isCategoryOpen && (
-              <div className="ml-6 space-y-1 animate-fade-in">
-                {categoryItems.map((item, index) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 text-muted-foreground hover:bg-purple-light hover:text-purple',
-                        isActive && 'bg-purple text-white',
-                        index === 0 && 'mt-2' // Dịch xuống dưới cho mục đầu tiên (Loại Sản Phẩm)
-                      )
-                    }
-                  >
-                    <item.icon size={20} className="text-purple" /> {/* Thêm icon cho từng mục */}
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {additionalMainItems.map((item) => (
             <NavItem
               key={item.to}
               to={item.to}

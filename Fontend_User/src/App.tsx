@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import Profile from "./pages/Profile";
 import Cart from "./pages/Cart";
 import OrderHistory from "./pages/OrderHistory";
 import NotFound from "./pages/NotFound";
+import ComboDetail from "./pages/ComboDetail";
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -44,7 +44,9 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/order-history" element={<OrderHistory />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/* Sửa route cho ComboDetail: dùng :id thay vì :Id */}
+          <Route path="/combo/:id" element={<ComboDetail />} />
+          {/* Catch-all route cho các URL không khớp */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

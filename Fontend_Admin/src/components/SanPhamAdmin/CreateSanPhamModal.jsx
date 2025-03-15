@@ -11,7 +11,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const [loaiSanPham, setLoaiSanPham] = useState("");
   const [moTa, setMoTa] = useState("");
   const [chatLieu, setChatLieu] = useState("");
-  const [images, setImages] = useState([]); // Lưu trữ base64 strings
+  const [images, setImages] = useState([]); 
   const [errors, setErrors] = useState({});
 
   const handleDragOver = (e) => {

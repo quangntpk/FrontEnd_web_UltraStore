@@ -53,8 +53,10 @@ const Invoices = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Voucher</h1>
-         
+          <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage billing and payment records for your customers.
+          </p>
         </div>
         <Button className="bg-purple hover:bg-purple-medium">
           <Plus className="mr-2 h-4 w-4" /> Create Invoice

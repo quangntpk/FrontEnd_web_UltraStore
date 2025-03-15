@@ -1,179 +1,127 @@
-import { useState, useEffect } from "react";
-import { FaCheck, FaTimes, FaEye, FaTrashAlt } from 'react-icons/fa';
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
+import { useState } from "react";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from "@/components/ui/table";
-import {
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Search,
-  Plus,
-  Filter,
-  RefreshCw,
-  MoreVertical
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Search, 
+  Package, 
+  Plus, 
+  Filter, 
+  RefreshCw, 
+  MoreVertical, 
+  AlertTriangle 
 } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
 
-const Comments = () => {
+// Sample inventory data
+const inventory = Array.from({ length: 10 }).map((_, i) => {
+  const stock = Math.floor(Math.random() * 150);
+  const threshold = Math.floor(Math.random() * 30) + 10;
+  return {
+    id: i + 1,
+    name: `Product ${i + 1}`,
+    sku: `SKU-${1000 + i}`,
+    category: ['Electronics', 'Clothing', 'Home', 'Office'][Math.floor(Math.random() * 4)],
+    stock,
+    threshold,
+    status: stock <= threshold ? 'Low Stock' : stock === 0 ? 'Out of Stock' : 'In Stock',
+    stockPercentage: Math.min(100, Math.round((stock / 100) * 100)),
+  };
+});
+
+const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [openDeleteModal, setOpenDeleteModal] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState(null);
-  const [openDetailModal, setOpenDetailModal] = useState(false);
-  const [selectedComment, setSelectedComment] = useState(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const commentsPerPage = 10;
+  const filteredInventory = inventory.filter(item => 
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const fetchComments = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`http://localhost:5261/api/comment/list`);
-      if (!response.ok) {
-        throw new Error('Không thể lấy dữ liệu bình luận');
-      }
-      const data = await response.json();
-      setComments(data);
-    } catch (error) {
-      console.error('Lỗi khi lấy danh sách bình luận:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteComment = async () => {
-    if (!commentToDelete) return;
-
-    try {
-      const response = await fetch(`http://localhost:5261/api/comment/delete/${commentToDelete.maBinhLuan}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('Không thể xóa bình luận');
-      }
-      setComments(comments.filter(comment => comment.maBinhLuan !== commentToDelete.maBinhLuan));
-      setOpenDeleteModal(false);
-      setCommentToDelete(null);
-      toast.success("Xóa bình luận thành công!");
-    } catch (error) {
-      console.error('Lỗi khi xóa bình luận:', error);
-      toast.error("Có lỗi xảy ra khi xóa bình luận.");
-    }
-  };
-
-  // Hàm duyệt bình luận
-  const handleApproveComment = async (comment) => {
-    try {
-      const response = await fetch(`http://localhost:5261/api/comment/approve/${comment.maBinhLuan}`, {
-        method: 'PUT',
-      });
-      if (!response.ok) {
-        throw new Error('Không thể duyệt bình luận');
-      }
-      setComments(comments.map(c =>
-        c.maBinhLuan === comment.maBinhLuan ? { ...c, trangThai: 1 } : c
-      ));
-      toast.success("Duyệt bình luận thành công!");
-    } catch (error) {
-      console.error('Lỗi khi duyệt bình luận:', error);
-      toast.error("Có lỗi xảy ra khi duyệt bình luận.");
-    }
-  };
-
-  // Thêm hàm hủy duyệt bình luận
-  const handleUnapproveComment = async (comment) => {
-    try {
-      const response = await fetch(`http://localhost:5261/api/comment/unapprove/${comment.maBinhLuan}`, {
-        method: 'PUT',
-      });
-      if (!response.ok) {
-        throw new Error('Không thể hủy duyệt bình luận');
-      }
-      setComments(comments.map(c =>
-        c.maBinhLuan === comment.maBinhLuan ? { ...c, trangThai: 0 } : c
-      ));
-      toast.success("Hủy duyệt bình luận thành công!");
-    } catch (error) {
-      console.error('Lỗi khi hủy duyệt bình luận:', error);
-      toast.error("Có lỗi xảy ra khi hủy duyệt bình luận.");
-    }
-  };
-
-  useEffect(() => {
-    fetchComments();
-  }, []);
-
-  const filteredComments = comments.filter(item => {
-    const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
-    return (
-      (item.noiDungBinhLuan?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (item.maBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
-      (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
-      (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (item.maSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
-
-    );
-  });
-
-  const indexOfLastComment = currentPage * commentsPerPage;
-  const indexOfFirstComment = indexOfLastComment - commentsPerPage;
-  const currentComments = filteredComments.slice(indexOfFirstComment, indexOfLastComment);
-  const totalPages = Math.ceil(filteredComments.length / commentsPerPage);
-
-  const handleDeleteClick = (comment) => {
-    setCommentToDelete(comment);
-    setOpenDeleteModal(true);
-  };
-
-  const handleDetailClick = (comment) => {
-    setSelectedComment(comment);
-    setOpenDetailModal(true);
-  };
+  const lowStockCount = inventory.filter(item => item.status === 'Low Stock').length;
+  const outOfStockCount = inventory.filter(item => item.status === 'Out of Stock').length;
 
   return (
     <div className="space-y-6">
-      <Toaster position="top-right" />
-
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bình Luận</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your product stock and inventory levels.
+          </p>
         </div>
-        {/*} <Button className="bg-purple hover:bg-purple-medium">
-          <Plus className="mr-2 h-4 w-4" /> Thêm Bình Luận
+        <Button className="bg-purple hover:bg-purple-medium">
+          <Plus className="mr-2 h-4 w-4" /> Add Inventory
         </Button>
-        */}
       </div>
-
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="hover-scale">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{inventory.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">All products in inventory</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover-scale">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{lowStockCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Products below threshold</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover-scale">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{outOfStockCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Products with zero stock</p>
+          </CardContent>
+        </Card>
+      </div>
+      
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Danh Sách Bình Luận</CardTitle>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <CardTitle>Inventory Status</CardTitle>
+            <CardDescription>
+              {lowStockCount > 0 && (
+                <div className="flex items-center text-amber-600">
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  {lowStockCount} {lowStockCount === 1 ? 'product' : 'products'} below threshold
+                </div>
+              )}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-start sm:items-center">
@@ -181,78 +129,81 @@ const Comments = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Tìm kiếm bình luận..."
+                placeholder="Search inventory..."
                 className="pl-8 w-full sm:w-[300px]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex gap-2 self-end">
-              {/* <Button variant="outline" size="sm" className="h-9">
+              <Button variant="outline" size="sm" className="h-9">
                 <Filter className="h-4 w-4 mr-2" />
-                Lọc
-              </Button> */}
-              <Button variant="outline" size="sm" className="h-9" onClick={fetchComments}>
+                Filter
+              </Button>
+              <Button variant="outline" size="sm" className="h-9">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Làm Mới
+                Refresh
               </Button>
             </div>
           </div>
-
+          
           <div className="rounded-md border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Sản Phẩm</TableHead>
-                  <TableHead>Người Dùng</TableHead>
-                  <TableHead>Nội Dung</TableHead>
-                  <TableHead>Trạng Thái</TableHead>
-                  <TableHead>Ngày Bình Luận</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                      Đang tải...
-                    </TableCell>
-                  </TableRow>
-                ) : currentComments.length > 0 ? (
-                  currentComments.map((item) => (
-                    <TableRow key={item.maBinhLuan} className="hover:bg-muted/50">
-                      <TableCell>{item.maBinhLuan}</TableCell>
-                      <TableCell>{item.maSanPham}</TableCell>
-                      <TableCell>{item.maNguoiDung}</TableCell>
-                      <TableCell>{item.noiDungBinhLuan}</TableCell>
+                {filteredInventory.length > 0 ? (
+                  filteredInventory.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-muted/50">
                       <TableCell>
-                        <span
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-md bg-purple-light flex items-center justify-center">
+                            <Package className="h-4 w-4 text-purple" />
+                          </div>
+                          <span className="font-medium">{item.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{item.sku}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>
+                        <div className="w-32">
+                          <div className="flex justify-between mb-1 text-xs">
+                            <span>{item.stock} units</span>
+                            <span>Threshold: {item.threshold}</span>
+                          </div>
+                          <Progress 
+                            value={item.stockPercentage} 
+                            className={
+                              item.status === 'Low Stock' 
+                                ? 'bg-amber-100' 
+                                : item.status === 'Out of Stock' 
+                                  ? 'bg-red-100' 
+                                  : 'bg-purple-light'
+                            }
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
                           className={
-                            item.trangThai === 1
-                              ? 'bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-100'  // "Đã Duyệt" (green)
-                              : item.trangThai === 0
-                                ? 'bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-100'  // "Chưa Duyệt" (red)
-                                : ''
+                            item.status === 'In Stock' 
+                              ? 'bg-green-100 text-green-800 border-0' 
+                              : item.status === 'Low Stock' 
+                                ? 'bg-amber-100 text-amber-800 border-0' 
+                                : 'bg-red-100 text-red-800 border-0'
                           }
                         >
-                          {item.trangThai === 0
-                            ? "Chưa Duyệt"
-                            : item.trangThai === 1
-                              ? "Đã Duyệt"
-                              : ""
-                          }
-                        </span>
-                      </TableCell>
-
-
-                      <TableCell>
-                        {item.ngayBinhLuan ? (() => {
-                          const date = new Date(item.ngayBinhLuan);
-                          const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                          const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                          return `${datePart}, ${timePart}`;
-                        })() : 'Ngày không hợp lệ'}
+                          {item.status}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -262,132 +213,29 @@ const Comments = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {item.trangThai === 0 ? (
-                              <DropdownMenuItem onClick={() => handleApproveComment(item)}>
-                                <FaCheck className="mr-2 h-4 w-4 text-green-500" /> Duyệt
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => handleUnapproveComment(item)}>
-                                <FaTimes className="mr-2 h-4 w-4 text-red-500" /> Hủy Duyệt
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleDetailClick(item)}>
-                              <FaEye className="mr-2 h-4 w-4 text-blue-500" /> Chi Tiết
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteClick(item)}>
-                              <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Xóa
-                            </DropdownMenuItem>
+                            <DropdownMenuItem>View details</DropdownMenuItem>
+                            <DropdownMenuItem>Update stock</DropdownMenuItem>
+                            <DropdownMenuItem>Reorder</DropdownMenuItem>
+                            <DropdownMenuItem>Set alerts</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
-
-
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                      Không tìm thấy bình luận nào phù hợp với tìm kiếm của bạn.
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      No inventory items found matching your search.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-
-          <div className="flex justify-between items-center mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              Trang Trước
-            </Button>
-            <span>
-              Trang {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Trang Sau
-            </Button>
-          </div>
         </CardContent>
       </Card>
-
-      {/* Modal xác nhận xóa */}
-      <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xác nhận xóa bình luận</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn xóa bình luận này không? Hành động này không thể hoàn tác.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDeleteModal(false)}>
-              Hủy
-            </Button>
-            <Button variant="destructive" onClick={deleteComment}>
-              Xóa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal chi tiết bình luận */}
-      <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Chi Tiết Bình Luận</DialogTitle>
-          </DialogHeader>
-          {selectedComment && (
-            <div className="space-y-4">
-              <div>
-                <strong>ID Bình Luận:</strong> {selectedComment.maBinhLuan}
-              </div>
-              <div>
-                <strong>Sản Phẩm:</strong> {selectedComment.maSanPham || "Không có"}
-              </div>
-              <div>
-                <strong>Người Dùng:</strong> {selectedComment.maNguoiDung || "Không có"}
-              </div>
-              <div>
-                <strong>Nội Dung:</strong> {selectedComment.noiDungBinhLuan}
-              </div>
-              <div>
-                <strong>Số Tim:</strong> {selectedComment.soTimBinhLuan}
-              </div>
-              <div>
-                <strong>Đánh Giá:</strong> {selectedComment.danhGia} / 5
-              </div>
-              <div>
-                <strong>Trạng Thái:</strong> {selectedComment.trangThai === 0 ? "Chưa Duyệt" : "Đã Duyệt"}
-              </div>
-              <div>
-                <strong>Ngày Bình Luận:</strong>
-                {selectedComment.ngayBinhLuan ? (() => {
-                  const date = new Date(selectedComment.ngayBinhLuan);
-                  const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                  return `${datePart}, ${timePart}`;
-                })() : 'Ngày không hợp lệ'}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
-              Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
-export default Comments;
+export default Inventory;
