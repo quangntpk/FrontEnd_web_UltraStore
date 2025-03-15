@@ -1,21 +1,11 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, LogIn, UserPlus, User, ShoppingCart, ClipboardList } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Menu, X, LogIn, UserPlus, User, ShoppingCart, ClipboardList, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
-const Navigation = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+import { toast, ToastContent, ToastOptions } from "react-toastify";
+import axios from "axios";
 
   const navItems = [
     {
@@ -40,7 +30,53 @@ const Navigation = () => {
     }
   ];
 
-  return <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300", scrolled ? "glass py-3" : "py-5")}>
+  const Navigation = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+    const navigate = useNavigate();
+    useEffect(() => {
+      const handleScroll = () => {
+        setScrolled(window.scrollY > 10);
+      };
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+  
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        "http://localhost:5261/api/XacThuc/DangXuat",
+        {},
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+    } catch (error) {
+      console.error("Logout error:", error.response?.data?.message || error.message);
+    }
+
+    window.parent.postMessage({ type: "LOGOUT" }, "http://localhost:8081");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId")
+    localStorage.removeItem("user");
+    setIsLoggedIn(false);
+    toast.success("Đăng xuất thành công 🎉\nBạn đã đăng xuất khỏi tài khoản.", {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      className: "bg-green-500 text-white border border-green-700 shadow-lg p-4 rounded-md",
+    });
+    console.log("Toast should be displayed");
+    navigate("/login");
+    setIsOpen(false);
+  };
+
+  return ( 
+  <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300", scrolled ? "glass py-3" : "py-5")}>
       <div className="container px-6 mx-auto flex items-center justify-between bg-slate-50 rounded-xl">
         <Link to="/" className="relative z-10">
           <span className="text-xl font-medium tracking-tight gradient-text">Minimalist</span>
@@ -65,11 +101,22 @@ const Navigation = () => {
               <ClipboardList className="mr-2 h-4 w-4" /> Đơn hàng
             </Button>
           </Link>
-          <Link to="/login">
-            <Button variant="ghost" size="sm" className="hover-effect">
-              <LogIn className="mr-2 h-4 w-4" /> Đăng nhập
+          {isLoggedIn ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover-effect"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
             </Button>
-          </Link>
+          ) : (
+            <Link to="/login">
+              <Button variant="ghost" size="sm" className="hover-effect">
+                <LogIn className="mr-2 h-4 w-4" /> Đăng nhập
+              </Button>
+            </Link>
+          )}
           <Link to="/register">
             <Button size="sm" className="gradient-bg hover-effect">
               <UserPlus className="mr-2 h-4 w-4" /> Đăng ký
@@ -135,7 +182,8 @@ const Navigation = () => {
           </div>
         </div>
       </div>
-    </header>;
+    </header>
+  );
 };
 
 export default Navigation;
