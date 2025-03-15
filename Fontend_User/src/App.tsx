@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,7 @@ import OrderHistory from "./pages/OrderHistory";
 import NotFound from "./pages/NotFound";
 import Message from "./pages/Message";
 import Inpaint from "./pages/Inpaint";
+import ComboDetail from "./pages/ComboDetail";
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -51,6 +51,7 @@ const App = () => (
           <Route path="/message" element={<Message />} />
           <Route path="/inpaint" element={<Inpaint />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

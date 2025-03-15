@@ -41,13 +41,13 @@ const ProductDetail = () => {
             colorCode,
             name: product.tenSanPham,
             description: product.moTa || "Không có mô tả",
-            price: product.details[0]?.gia / 1000 || 0,
+            price: product.details[0]?.gia || 0,
             rating: 4.5,
             color: `#${product.mauSac || colorCode}`,
             sizes: product.details.map(detail => ({
               size: detail.kichThuoc.trim(),
               quantity: detail.soLuong,
-              price: detail.gia / 1000
+              price: detail.gia 
             })),
             material: product.chatLieu,
             brand: product.maThuongHieu,
@@ -199,7 +199,7 @@ const ProductDetail = () => {
                   </div>
                   <span className="text-sm font-medium">{baseProduct.rating}</span>
                 </div>
-                <p className="text-2xl font-medium text-primary mb-4">${selectedPrice.toFixed(2)}</p>
+                <p className="text-2xl font-medium text-primary mb-4">{selectedPrice} VND</p>
                 <p className="text-muted-foreground">{baseProduct.description}</p>
               </div>
               
