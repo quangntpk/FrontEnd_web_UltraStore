@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, User, UserPlus, Mail } from "lucide-react";
+import axios from "axios";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 const Register = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [account, setAccount] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,9 +23,71 @@ const Register = () => {
     toast
   } = useToast();
   const navigate = useNavigate();
+  const validateForm = () => {
+    if (!fullName.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi ⚠️",
+        description: "Họ và tên không được để trống.",
+        duration: 3000,
+        className: "bg-red-500 text-white border border-red-700 shadow-lg p-4 rounded-md",
+        action: (
+          <Button
+            variant="outline"
+            className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+          >
+            Đóng
+          </Button>
+        ),
+      });
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi ⚠️",
+        description: "Email không hợp lệ.",
+        duration: 3000,
+        className: "bg-red-500 text-white border border-red-700 shadow-lg p-4 rounded-md",
+        action: (
+          <Button
+            variant="outline"
+            className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+          >
+            Đóng
+          </Button>
+        ),
+      });
+      return false;
+    }
+    if (password.length < 8 || password.length > 40) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi ⚠️",
+        description: "Mật khẩu phải có ít nhất 8 ký tự và ít hơn 40 ký tự.",
+        duration: 3000,
+        className: "bg-red-500 text-white border border-red-700 shadow-lg p-4 rounded-md",
+        action: (
+          <Button
+            variant="outline"
+            className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+          >
+            Đóng
+          </Button>
+        ),
+      });
+      return false;
+    }
+    return true;
+  };
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    if (!validateForm()) {
+      setIsLoading(false);
+      return;
+    }
 
     // Kiểm tra mật khẩu
     if (password !== confirmPassword) {
@@ -47,26 +111,78 @@ const Register = () => {
       return;
     }
 
-    // Giả lập quá trình đăng ký
-    setTimeout(() => {
-      // Đây chỉ là mẫu, sau này sẽ kết nối với hệ thống xác thực thực tế
-      if (fullName && email && password) {
-        toast({
-          title: "Đăng ký thành công",
-          description: "Chào mừng bạn đến với Minimalist!"
-        });
-        navigate("/login");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Đăng ký thất bại",
-          description: "Vui lòng nhập đầy đủ thông tin."
-        });
-      }
-      setIsLoading(false);
-    }, 1500);
-  };
-  return <div className="min-h-screen flex flex-col bg-[#eaf2f5]/[0.31] rounded-3xl">
+ // Kiểm tra đồng ý điều khoản
+ if (!agreeToTerms) {
+  toast({
+    variant: "destructive",
+    title: "Vui lòng đồng ý với điều khoản ⚠️",
+    description: "Bạn cần đồng ý với điều khoản dịch vụ và chính sách bảo mật.",
+    duration: 3000,
+    className: "bg-red-500 text-white border border-red-700 shadow-lg p-4 rounded-md",
+    action: (
+      <Button
+        variant="outline"
+        className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+      >
+        Đóng
+      </Button>
+    ),
+  });
+  setIsLoading(false);
+  return;
+}
+
+try {
+  const response = await axios.post("http://localhost:5261/api/XacThuc/DangKy", {
+    hoTen: fullName,
+    email,
+    taiKhoan: account,
+    matKhau: password,
+  });
+
+  const { message, token } = response.data;
+  console.log("Response data:", response.data); // Kiểm tra dữ liệu API
+  const toastId = toast({
+    title: "Đăng ký thành công 🎉",
+    description: message ? `${message} - Chào mừng bạn đến với Minimalist!` : "Chào mừng bạn đến với Minimalist!",
+    duration: 3000,
+    className: "bg-green-500 text-white border border-green-700 shadow-lg p-4 rounded-md",
+    action: (
+      <Button
+        variant="outline"
+        className="bg-white text-green-500 hover:bg-green-100 border-green-500"
+      >
+        Đóng
+      </Button>
+    ),
+  });
+  // Lưu token vào localStorage (nếu backend trả về token)
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+  navigate("/login");
+} catch (error) {
+  const toastId = toast({
+    variant: "destructive",
+    title: "Đăng ký thất bại ⚠️",
+    description: error.response?.data?.message || "Vui lòng kiểm tra lại thông tin.",
+    duration: 3000,
+    className: "bg-red-500 text-white border border-red-700 shadow-lg p-4 rounded-md",
+    action: (
+      <Button
+        variant="outline"
+        className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+      >
+        Đóng
+      </Button>
+    ),
+  });
+} finally {
+  setIsLoading(false);
+}
+};
+  return (
+  <div className="min-h-screen flex flex-col bg-[#eaf2f5]/[0.31] rounded-3xl">
       <Navigation />
       
       <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-background to-secondary/30">
@@ -93,6 +209,14 @@ const Register = () => {
                 <div className="relative">
                   <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                   <Input id="email" placeholder="your.email@example.com" type="email" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="account">Tài khoản</Label>
+                <div className="relative">
+                <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input id="account" placeholder="Tài khoản" type="text" value={account} onChange={e => setAccount(e.target.value)} className="pl-10" required />
                 </div>
               </div>
 
@@ -181,6 +305,7 @@ const Register = () => {
       </main>
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
 export default Register;

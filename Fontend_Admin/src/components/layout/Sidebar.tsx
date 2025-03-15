@@ -69,6 +69,7 @@ const Sidebar = () => {
 
   const mainNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+
     { to: '/orders', icon: ShoppingCart, label: 'Orders' },
     { to: '/products', icon: Package, label: 'Sản Phẩm' },
     { to: '/customers', icon: Users, label: 'Customers' },
@@ -76,6 +77,22 @@ const Sidebar = () => {
     { to: '/invoices', icon: FileText, label: 'Invoices' },
     { to: '/inventory', icon: Store, label: 'Inventory' },
     { to: '/combos', icon: Zap, label: 'Combo Sản Phẩm'}
+
+    { to: '/orders', icon: ShoppingCart, label: 'Đơn Hàng' },
+    { to: '/products', icon: Package, label: 'Quản lý Sản Phẩm' },
+   
+  ];
+
+  const categoryItems = [
+    { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' }, // Icon Layers cho loại
+    { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },     // Icon Award cho thương hiệu
+  ];
+
+  const additionalMainItems = [
+    { to: '/customers', icon: Users, label: 'Tài Khoản' },
+    { to: '/invoices', icon: Ticket, label: 'Quản lý Voucher' },        // Icon Ticket thay FileText
+    { to: '/inventory', icon: MessageSquare, label: 'Quản lý bình luận' }, // Icon MessageSquare thay Store
+    { to: '/combos', icon: Zap, label: 'Quản lý Combo' },              // Giữ Zap vì phù hợp
   ];
 
   const additionalNavItems = [

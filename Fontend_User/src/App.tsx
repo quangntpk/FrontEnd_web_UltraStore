@@ -13,7 +13,11 @@ import Profile from "./pages/Profile";
 import Cart from "./pages/Cart";
 import OrderHistory from "./pages/OrderHistory";
 import NotFound from "./pages/NotFound";
+
 import ComboDetail from "./pages/ComboDetail";
+
+import ForgotPassword from "./pages/ForgotPassword";
+
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -41,6 +45,7 @@ const App = () => (
           <Route path="/product/:productId" element={<ProductDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword/>} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/order-history" element={<OrderHistory />} />
@@ -52,6 +57,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  
 );
 
 export default App;
