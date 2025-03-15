@@ -76,7 +76,7 @@ const Sidebar = () => {
 
   const mainNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/orders', icon: ShoppingCart, label: 'Orders' },
+    { to: '/orders', icon: ShoppingCart, label: 'Đơn Hàng' },
     { to: '/products', icon: Package, label: 'Quản lý Sản Phẩm' },
    
   ];
