@@ -13,9 +13,10 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Cart from "./pages/Cart";
 import Contact from "./components/Contact";
-import Product3D from "./components/Product3D";
 import OrderHistory from "./pages/OrderHistory";
 import NotFound from "./pages/NotFound";
+import Message from "./pages/Message";
+import Inpaint from "./pages/Inpaint";
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -47,6 +48,8 @@ const App = () => (
           <Route path="/cart" element={<Cart />} />
           <Route path="/order-history" element={<OrderHistory />} />
           <Route path="/Contact" element={<Contact />} />
+          <Route path="/message" element={<Message />} />
+          <Route path="/inpaint" element={<Inpaint />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
