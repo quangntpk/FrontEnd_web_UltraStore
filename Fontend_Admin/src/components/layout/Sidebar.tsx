@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -10,6 +9,8 @@ import {
   Settings, 
   ChevronLeft, 
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   FileText,
   Store,
   CreditCard,
@@ -21,7 +22,10 @@ import {
   Globe,
   TrendingUp,
   Zap,
-  Shield
+  Shield,
+  Tags,
+  Layers,
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -49,7 +53,8 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
       {({ isActive }) => (
         <>
           <Icon size={20} className={cn(isActive ? 'text-white' : 'text-purple')} />
-          <span className={cn('transition-opacity duration-300', 
+          <span className={cn(
+            'transition-opacity duration-300', 
             isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
           )}>
             {label}
@@ -62,20 +67,31 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
 
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const toggleCategory = () => {
+    setIsCategoryOpen(!isCategoryOpen);
   };
 
   const mainNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/orders', icon: ShoppingCart, label: 'Orders' },
     { to: '/products', icon: Package, label: 'Quản lý Sản Phẩm' },
+    // "Danh Mục" sẽ được thêm ngay dưới "Quản lý Sản Phẩm" trong phần render
     { to: '/customers', icon: Users, label: 'Tài Khoản' },
     { to: '/analytics', icon: BarChart, label: 'Liên Hệ' },
     { to: '/invoices', icon: FileText, label: 'Quản lý Voucher' },
     { to: '/inventory', icon: Store, label: 'Quản lý bình luận' },
-    { to: '/combos', icon: Zap, label: 'Quản lý Combo'}
+    { to: '/combos', icon: Zap, label: 'Quản lý Combo' },
+  ];
+
+  const categoryItems = [
+    { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' },
+    { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },
   ];
 
   const additionalNavItems = [
@@ -107,7 +123,7 @@ const Sidebar = () => {
         isCollapsed ? 'justify-center' : 'justify-between'
       )}>
         {!isCollapsed && (
-          <div className="flex items-center gap-2 animate-fade-in">
+          <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-md bg-purple flex items-center justify-center">
               <span className="text-white font-bold">A</span>
             </div>
@@ -124,22 +140,65 @@ const Sidebar = () => {
         </Button>
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        <div className="space-y-1 mb-6">
-          {!isCollapsed && <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Main</div>}
-          {mainNavItems.map((item) => (
-            <NavItem
-              key={item.to}
-              to={item.to}
-              icon={item.icon}
-              label={item.label}
-              isCollapsed={isCollapsed}
-            />
+      <nav className="flex-1 py-4 px-2 space-y-6 overflow-y-auto">
+        <div className="space-y-1">
+          {!isCollapsed && (
+            <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
+              Main
+            </div>
+          )}
+          {mainNavItems.map((item, index) => (
+            <div key={item.to}>
+              <NavItem
+                to={item.to}
+                icon={item.icon}
+                label={item.label}
+                isCollapsed={isCollapsed}
+              />
+              {/* Thêm Category Menu ngay dưới "Quản lý Sản Phẩm" (index === 2) */}
+              {index === 2 && (
+                <div className={cn('rounded-md transition-all duration-300')}>
+                  <button
+                    onClick={toggleCategory}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 w-full text-muted-foreground hover:bg-purple-light hover:text-purple rounded-md',
+                      isCategoryOpen && 'bg-purple-light text-purple'
+                    )}
+                  >
+                    <Tags size={20} className="text-purple" />
+                    {!isCollapsed && (
+                      <>
+                        <span className="flex-1 text-left">Danh Mục</span>
+                        {isCategoryOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </>
+                    )}
+                  </button>
+                  
+                  {!isCollapsed && isCategoryOpen && (
+                    <div className="ml-6 space-y-1 mt-1">
+                      {categoryItems.map((category) => (
+                        <NavItem
+                          key={category.to}
+                          to={category.to}
+                          icon={category.icon}
+                          label={category.label}
+                          isCollapsed={false}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
-        
-        <div className="space-y-1 mb-6">
-          {!isCollapsed && <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Management</div>}
+
+        <div className="space-y-1">
+          {!isCollapsed && (
+            <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
+              Management
+            </div>
+          )}
           {additionalNavItems.map((item) => (
             <NavItem
               key={item.to}
@@ -152,7 +211,11 @@ const Sidebar = () => {
         </div>
         
         <div className="space-y-1">
-          {!isCollapsed && <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">Support</div>}
+          {!isCollapsed && (
+            <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
+              Support
+            </div>
+          )}
           {supportNavItems.map((item) => (
             <NavItem
               key={item.to}
@@ -177,7 +240,7 @@ const Sidebar = () => {
             <span className="text-purple font-medium">U</span>
           </div>
           {!isCollapsed && (
-            <div className="animate-fade-in">
+            <div>
               <p className="font-medium">User Admin</p>
               <p className="text-xs">admin@example.com</p>
             </div>

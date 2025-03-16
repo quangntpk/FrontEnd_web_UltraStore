@@ -67,7 +67,7 @@ const Vouchers = () => {
       setVouchers(data);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách voucher:', error);
-      toast.error("Có lỗi khi tải danh sách voucher!");
+     
     } finally {
       setLoading(false);
     }
