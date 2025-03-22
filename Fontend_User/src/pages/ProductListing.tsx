@@ -143,45 +143,45 @@ const ProductListing = () => {
     toast.success(`${product.name} added to cart!`);
   };
   return <div className="min-h-screen flex flex-col">
-    <Navigation />
-
-    <main className="flex-1 pt-24">
-      <div className="container px-4 md:px-6 mx-auto max-w-7xl">
-        <div className="flex flex-col gap-6 my-[50px]">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <h1 className="text-3xl font-bold gradient-text">All Products</h1>
-
-            <form onSubmit={handleSearch} className="flex w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search products..." className="pl-8 w-full" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-              </div>
-              <Button type="submit" size="sm" className="ml-2">
-                Search
-              </Button>
-              <Button type="button" variant="outline" size="icon" className="ml-2" onClick={() => setShowFilters(!showFilters)}>
-                <SlidersHorizontal className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
-
-          {showFilters && <div className="bg-white p-6 rounded-xl shadow-sm animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <Label className="text-lg font-medium mb-3 block">Categories</Label>
-                <div className="space-y-2">
-                  {categories.map(category => <div key={category} className="flex items-center space-x-2">
-                    <Checkbox id={`category-${category}`} checked={selectedCategories.includes(category)} onCheckedChange={() => handleCategoryChange(category)} />
-                    <label htmlFor={`category-${category}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {category}
-                    </label>
-                  </div>)}
+      <Navigation />
+      
+      <main className="flex-1 pt-24">
+        <div className="container px-4 md:px-6 mx-auto max-w-7xl">
+          <div className="flex flex-col gap-6 my-[50px]">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <h1 className="text-3xl font-bold gradient-text">All Products</h1>
+              
+              <form onSubmit={handleSearch} className="flex w-full md:w-auto">
+                <div className="relative flex-1 md:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input type="search" placeholder="Search products..." className="pl-8 w-full" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                 </div>
-              </div>
-
-              <div>
-                <Label className="text-lg font-medium mb-3 block">Price Range</Label>
-                <Select onValueChange={value => {
+                <Button type="submit" size="sm" className="ml-2">
+                  Search
+                </Button>
+                <Button type="button" variant="outline" size="icon" className="ml-2" onClick={() => setShowFilters(!showFilters)}>
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+              </form>
+            </div>
+            
+            {showFilters && <div className="bg-white p-6 rounded-xl shadow-sm animate-fade-in">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <Label className="text-lg font-medium mb-3 block">Categories</Label>
+                    <div className="space-y-2">
+                      {categories.map(category => <div key={category} className="flex items-center space-x-2">
+                          <Checkbox id={`category-${category}`} checked={selectedCategories.includes(category)} onCheckedChange={() => handleCategoryChange(category)} />
+                          <label htmlFor={`category-${category}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            {category}
+                          </label>
+                        </div>)}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-lg font-medium mb-3 block">Price Range</Label>
+                    <Select onValueChange={value => {
                   switch (value) {
                     case "under-100":
                       setPriceRange({
@@ -205,81 +205,81 @@ const ProductListing = () => {
                       setPriceRange(null);
                   }
                 }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select price range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All prices</SelectItem>
-                    <SelectItem value="under-100">Under $100</SelectItem>
-                    <SelectItem value="100-200">$100 - $200</SelectItem>
-                    <SelectItem value="over-200">Over $200</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-lg font-medium mb-3 block">Sort By</Label>
-                <Select defaultValue={sortOrder} onValueChange={setSortOrder}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select sorting" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="featured">Featured</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                    <SelectItem value="name-asc">Name: A to Z</SelectItem>
-                    <SelectItem value="name-desc">Name: Z to A</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <Button variant="outline" onClick={clearFilters}>
-                Clear Filters
-              </Button>
-            </div>
-          </div>}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.length > 0 ? filteredProducts.map(product => <div key={product.id} className="rounded-2xl overflow-hidden border border-border colorful-card h-full flex flex-col">
-              <div className={`aspect-video overflow-hidden bg-gradient-to-r ${product.colorClass}`}>
-                <img src={product.imageSrc} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 mix-blend-overlay" />
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="text-xl font-medium">{product.name}</h3>
-                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary mt-1">
-                      {product.category}
-                    </span>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select price range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All prices</SelectItem>
+                        <SelectItem value="under-100">Under $100</SelectItem>
+                        <SelectItem value="100-200">$100 - $200</SelectItem>
+                        <SelectItem value="over-200">Over $200</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <span className="font-medium text-primary">${product.price}</span>
+                  
+                  <div>
+                    <Label className="text-lg font-medium mb-3 block">Sort By</Label>
+                    <Select defaultValue={sortOrder} onValueChange={setSortOrder}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select sorting" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="featured">Featured</SelectItem>
+                        <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                        <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                        <SelectItem value="name-asc">Name: A to Z</SelectItem>
+                        <SelectItem value="name-desc">Name: Z to A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <p className="text-muted-foreground flex-1">{product.description}</p>
-                <div className="mt-6 flex gap-2">
-                  <Link to={`/product/${product.id}`} className="text-primary font-medium hover-effect hover:opacity-80">
-                    View details
-                  </Link>
-                  <Button variant="outline" size="sm" className="ml-auto" onClick={() => addToCart(product)}>
-                    <ShoppingCart className="h-4 w-4 mr-1" />
-                    Add to Cart
+                
+                <div className="mt-6 flex justify-end">
+                  <Button variant="outline" onClick={clearFilters}>
+                    Clear Filters
                   </Button>
                 </div>
-              </div>
-            </div>) : <div className="col-span-full py-12 text-center">
-              <h3 className="text-xl font-medium mb-2">No products found</h3>
-              <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
-              <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                Clear all filters
-              </Button>
-            </div>}
+              </div>}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.length > 0 ? filteredProducts.map(product => <div key={product.id} className="rounded-2xl overflow-hidden border border-border colorful-card h-full flex flex-col">
+                    <div className={`aspect-video overflow-hidden bg-gradient-to-r ${product.colorClass}`}>
+                      <img src={product.imageSrc} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 mix-blend-overlay" />
+                    </div>
+                    <div className="p-6 flex flex-col flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="text-xl font-medium">{product.name}</h3>
+                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary mt-1">
+                            {product.category}
+                          </span>
+                        </div>
+                        <span className="font-medium text-primary">${product.price}</span>
+                      </div>
+                      <p className="text-muted-foreground flex-1">{product.description}</p>
+                      <div className="mt-6 flex gap-2">
+                        <Link to={`/product/${product.id}`} className="text-primary font-medium hover-effect hover:opacity-80">
+                          View details
+                        </Link>
+                        <Button variant="outline" size="sm" className="ml-auto" onClick={() => addToCart(product)}>
+                          <ShoppingCart className="h-4 w-4 mr-1" /> 
+                          Add to Cart
+                        </Button>
+                      </div>
+                    </div>
+                  </div>) : <div className="col-span-full py-12 text-center">
+                  <h3 className="text-xl font-medium mb-2">No products found</h3>
+                  <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
+                  <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                    Clear all filters
+                  </Button>
+                </div>}
+            </div>
           </div>
         </div>
-      </div>
-    </main>
-
-    <Footer />
-  </div>;
+      </main>
+      
+      <Footer />
+    </div>;
 };
 export default ProductListing;

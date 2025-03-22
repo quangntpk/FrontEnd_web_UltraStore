@@ -108,7 +108,6 @@ const Index = () => {
         
         <ProductShowcase />
         <ComboShowcase />
-        <Contact />
       </main>
       <Footer />
     </div>

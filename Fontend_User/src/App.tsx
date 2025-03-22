@@ -11,9 +11,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Cart from "./pages/Cart";
+import Contact from "./components/Contact";
 import OrderHistory from "./pages/OrderHistory";
 import NotFound from "./pages/NotFound";
-import ForgotPassword from "./pages/ForgotPassword";
+import Message from "./pages/Message";
+import Inpaint from "./pages/Inpaint";
 import ComboDetail from "./pages/ComboDetail";
 
 // Scroll restoration component
@@ -42,18 +44,19 @@ const App = () => (
           <Route path="/product/:productId" element={<ProductDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword/>} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/order-history" element={<OrderHistory />} />
-          <Route path="/combo/:id" element={<ComboDetail />} />
+          <Route path="/Contact" element={<Contact />} />
+          <Route path="/message" element={<Message />} />
+          <Route path="/inpaint" element={<Inpaint />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-  
 );
 
 export default App;
