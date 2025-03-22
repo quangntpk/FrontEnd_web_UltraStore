@@ -88,12 +88,14 @@ const Sidebar = () => {
     { to: '/analytics', icon: Mail, label: 'Liên Hệ' },       
     { to: '/invoices', icon: Ticket, label: 'Voucher' },      
     { to: '/inventory', icon: MessageSquare, label: 'Bình luận' }, 
-    { to: '/combos', icon: Zap, label: 'Combo' },             
+    { to: '/combos', icon: Zap, label: 'Combo' },
+    { to: '/Giaodien', icon: Calendar, label: 'Giao diện'}             
   ];
 
   const categoryItems = [
     { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' }, 
     { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },     
+
   ];
 
   const additionalNavItems = [

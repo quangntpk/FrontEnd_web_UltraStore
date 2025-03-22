@@ -1,340 +1,184 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-
-// Định nghĩa interface cho yêu cầu gửi đến API
-interface InpaintRequest {
-    key: string;
-    prompt: string;
-    negativePrompt?: string;
-    initImage: string; // Chuỗi base64 của ảnh gốc
-    maskImage?: string; // Chuỗi base64 của mask (tùy chọn)
-    width: string;
-    height: string;
-    samples: string;
-    numInferenceSteps: string;
-    safetyChecker: string;
-    enhancePrompt: string;
-    guidanceScale: number;
-    strength: number;
-    base64: string;
-    seed?: number;
-    webhook?: string;
-    trackId?: string;
-}
+import React, { useState, useRef } from 'react';
 
 const Inpaint: React.FC = () => {
-    // Khởi tạo state cho yêu cầu inpainting với các giá trị mặc định
-    const [request, setRequest] = useState<InpaintRequest>({
-        key: 'sk-ojcyoSQtQjjnATJ16pg4HxPVAtZl9yWn40GfZo5CjEGwkOeA', // Thay bằng API key thực tế
-        prompt: '',
-        negativePrompt: '',
-        initImage: '',
-        maskImage: '',
-        width: '512',
-        height: '512',
-        samples: '1',
-        numInferenceSteps: '30',
-        safetyChecker: 'no',
-        enhancePrompt: 'yes',
-        guidanceScale: 7.5,
-        strength: 0.7,
-        base64: 'no',
-        seed: undefined,
-        webhook: '',
-        trackId: ''
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [processedImage, setProcessedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [prompt, setPrompt] = useState<string>('');
+
+  const REPLICATE_API_KEY = '';
+  const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
+  const downloadRef = useRef<HTMLAnchorElement>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setImageFile(event.target.files[0]);
+      setProcessedImage(null);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
     });
+  };
 
-    // Các state bổ sung cho giao diện
-    const [response, setResponse] = useState<string | null>(null); // Kết quả từ API
-    const [loading, setLoading] = useState<boolean>(false); // Trạng thái đang xử lý
-    const [error, setError] = useState<string | null>(null); // Thông báo lỗi
-    const [showAdvanced, setShowAdvanced] = useState<boolean>(false); // Hiển thị tùy chọn nâng cao
+  const handleInpaint = async () => {
+    if (!imageFile || !prompt) {
+      alert('Vui lòng chọn ảnh và nhập mô tả!');
+      return;
+    }
 
-    // Xử lý khi người dùng chọn file ảnh
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setRequest({ ...request, initImage: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+    setLoading(true);
+    try {
+      const base64Image = await fileToBase64(imageFile);
 
-    // Xử lý khi người dùng chọn file mask
-    const handleMaskChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setRequest({ ...request, maskImage: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+      const payload = {
+        version: 'fb9c8e3e2b39f584d93dffa9e6dda4b974abac7098f36883e251fc7b6e75bf01',
+        input: {
+          image: base64Image,
+          prompt: prompt,
+          mask: base64Image, // Mask tạm thời
+          num_outputs: 1,
+          num_inference_steps: 50,
+          guidance_scale: 7.5,
+        },
+      };
 
-    // Xử lý gửi yêu cầu đến API
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!request.initImage) {
-            setError('Vui lòng tải lên ảnh.');
-            return;
-        }
-        setLoading(true);
-        setError(null);
+      console.log('Sending payload to Replicate:', payload);
+
+      let response;
+      try {
+        response = await fetch(REPLICATE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${REPLICATE_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (fetchError) {
+        throw new Error(`Không thể kết nối tới Replicate API: ${fetchError.message}. Có thể do CORS hoặc mạng. Vui lòng thử lại hoặc dùng proxy server.`);
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const prediction = await response.json();
+      console.log('Prediction Response:', prediction);
+
+      if (!prediction.id) {
+        throw new Error('Không nhận được prediction ID từ Replicate');
+      }
+
+      const predictionId = prediction.id;
+
+      let result;
+      let attempts = 0;
+      const maxAttempts = 30;
+
+      do {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        let statusResponse;
         try {
-            const res = await axios.post('http://localhost:5261/api/Inpaint', request); // Thay bằng endpoint thực tế
-            if (res.data.status === 'success') {
-                setResponse(res.data.output); // Giả định API trả về trường 'output'
-            } else {
-                setError(res.data.message || 'Đã xảy ra lỗi không xác định.');
-            }
-        } catch (err) {
-            setError('Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại.');
-            console.error(err);
-        } finally {
-            setLoading(false);
+          statusResponse = await fetch(`${REPLICATE_API_URL}/${predictionId}`, {
+            headers: {
+              'Authorization': `Token ${REPLICATE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+          });
+        } catch (fetchError) {
+          throw new Error(`Polling fetch failed: ${fetchError.message}`);
         }
-    };
 
-    return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-            <h1>Inpaint Image</h1>
-            <form onSubmit={handleSubmit}>
-                {/* API Key */}
-                <div style={{ marginBottom: '15px' }}>
-                    <label>API Key:</label><br />
-                    <input
-                        type="text"
-                        value={request.key}
-                        onChange={(e) => setRequest({ ...request, key: e.target.value })}
-                        placeholder="Nhập API Key"
-                        required
-                        style={{ width: '100%', padding: '8px' }}
-                    />
-                </div>
+        if (!statusResponse.ok) {
+          const errorText = await statusResponse.text();
+          throw new Error(`Polling error! status: ${statusResponse.status}, message: ${errorText}`);
+        }
 
-                {/* Prompt */}
-                <div style={{ marginBottom: '15px' }}>
-                    <label>Prompt:</label><br />
-                    <input
-                        type="text"
-                        value={request.prompt}
-                        onChange={(e) => setRequest({ ...request, prompt: e.target.value })}
-                        placeholder="Mô tả nội dung muốn inpaint"
-                        required
-                        style={{ width: '100%', padding: '8px' }}
-                    />
-                </div>
+        result = await statusResponse.json();
+        console.log('Polling Result:', result);
+        attempts++;
 
-                {/* Negative Prompt */}
-                <div style={{ marginBottom: '15px' }}>
-                    <label>Negative Prompt (tùy chọn):</label><br />
-                    <input
-                        type="text"
-                        value={request.negativePrompt || ''}
-                        onChange={(e) => setRequest({ ...request, negativePrompt: e.target.value })}
-                        placeholder="Những gì không muốn xuất hiện"
-                        style={{ width: '100%', padding: '8px' }}
-                    />
-                </div>
+        if (attempts >= maxAttempts) {
+          throw new Error('Hết thời gian chờ kết quả từ Replicate');
+        }
+      } while (result.status !== 'succeeded' && result.status !== 'failed');
 
-                {/* Upload Image */}
-                <div style={{ marginBottom: '15px' }}>
-                    <label>Upload Image:</label><br />
-                    <input type="file" onChange={handleImageChange} accept="image/*" required />
-                    {request.initImage && (
-                        <div style={{ marginTop: '10px' }}>
-                            <h3>Ảnh đã chọn:</h3>
-                            <img src={request.initImage} alt="Selected Image" style={{ maxWidth: '300px' }} />
-                        </div>
-                    )}
-                </div>
+      if (result.status === 'failed') {
+        throw new Error('Failed to generate image: ' + (result.error || 'Unknown error'));
+      }
 
-                {/* Upload Mask */}
-                <div style={{ marginBottom: '15px' }}>
-                    <label>Upload Mask (tùy chọn):</label><br />
-                    <input type="file" onChange={handleMaskChange} accept="image/*" />
-                    {request.maskImage && (
-                        <div style={{ marginTop: '10px' }}>
-                            <h3>Mask đã chọn:</h3>
-                            <img src={request.maskImage} alt="Selected Mask" style={{ maxWidth: '300px' }} />
-                        </div>
-                    )}
-                </div>
+      if (!result.output || !result.output[0]) {
+        throw new Error('Không nhận được output từ Replicate');
+      }
 
-                {/* Nút hiển thị/ẩn tùy chọn nâng cao */}
-                <button
-                    type="button"
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                    style={{ marginBottom: '15px', padding: '8px 16px' }}
-                >
-                    {showAdvanced ? 'Ẩn tùy chọn nâng cao' : 'Hiện tùy chọn nâng cao'}
-                </button>
+      setProcessedImage(result.output[0]);
 
-                {/* Tùy chọn nâng cao */}
-                {showAdvanced && (
-                    <div style={{ marginBottom: '15px', padding: '10px', border: '1px solid #ccc' }}>
-                        <h2>Tùy chọn nâng cao</h2>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Width:</label><br />
-                            <input
-                                type="text"
-                                value={request.width}
-                                onChange={(e) => setRequest({ ...request, width: e.target.value })}
-                                placeholder="e.g., 512"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Height:</label><br />
-                            <input
-                                type="text"
-                                value={request.height}
-                                onChange={(e) => setRequest({ ...request, height: e.target.value })}
-                                placeholder="e.g., 512"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Samples:</label><br />
-                            <input
-                                type="text"
-                                value={request.samples}
-                                onChange={(e) => setRequest({ ...request, samples: e.target.value })}
-                                placeholder="e.g., 1"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Num Inference Steps:</label><br />
-                            <input
-                                type="text"
-                                value={request.numInferenceSteps}
-                                onChange={(e) => setRequest({ ...request, numInferenceSteps: e.target.value })}
-                                placeholder="e.g., 30"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Safety Checker:</label><br />
-                            <select
-                                value={request.safetyChecker}
-                                onChange={(e) => setRequest({ ...request, safetyChecker: e.target.value })}
-                                style={{ width: '100%', padding: '8px' }}
-                            >
-                                <option value="yes">Yes</option>
-                                <option value="no">No</option>
-                            </select>
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Enhance Prompt:</label><br />
-                            <select
-                                value={request.enhancePrompt}
-                                onChange={(e) => setRequest({ ...request, enhancePrompt: e.target.value })}
-                                style={{ width: '100%', padding: '8px' }}
-                            >
-                                <option value="yes">Yes</option>
-                                <option value="no">No</option>
-                            </select>
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Guidance Scale:</label><br />
-                            <input
-                                type="number"
-                                step="0.1"
-                                value={request.guidanceScale}
-                                onChange={(e) => setRequest({ ...request, guidanceScale: parseFloat(e.target.value) })}
-                                placeholder="e.g., 7.5"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Strength:</label><br />
-                            <input
-                                type="number"
-                                step="0.1"
-                                value={request.strength}
-                                onChange={(e) => setRequest({ ...request, strength: parseFloat(e.target.value) })}
-                                placeholder="e.g., 0.7"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Base64:</label><br />
-                            <select
-                                value={request.base64}
-                                onChange={(e) => setRequest({ ...request, base64: e.target.value })}
-                                style={{ width: '100%', padding: '8px' }}
-                            >
-                                <option value="yes">Yes</option>
-                                <option value="no">No</option>
-                            </select>
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Seed:</label><br />
-                            <input
-                                type="number"
-                                value={request.seed || ''}
-                                onChange={(e) => setRequest({ ...request, seed: e.target.value ? parseInt(e.target.value) : undefined })}
-                                placeholder="Tùy chọn"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Webhook:</label><br />
-                            <input
-                                type="text"
-                                value={request.webhook || ''}
-                                onChange={(e) => setRequest({ ...request, webhook: e.target.value })}
-                                placeholder="Tùy chọn"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Track ID:</label><br />
-                            <input
-                                type="text"
-                                value={request.trackId || ''}
-                                onChange={(e) => setRequest({ ...request, trackId: e.target.value })}
-                                placeholder="Tùy chọn"
-                                style={{ width: '100%', padding: '8px' }}
-                            />
-                        </div>
-                    </div>
-                )}
+    } catch (error) {
+      console.error('Lỗi khi xử lý:', error);
+      alert(`Lỗi xử lý ảnh: ${error.message}. Hiển thị ảnh gốc.`);
+      setProcessedImage(imageFile ? URL.createObjectURL(imageFile) : null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                {/* Nút gửi */}
-                <button
-                    type="submit"
-                    disabled={loading}
-                    style={{ padding: '10px 20px', backgroundColor: loading ? '#ccc' : '#007bff', color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
-                >
-                    {loading ? 'Đang xử lý...' : 'Inpaint'}
-                </button>
-            </form>
+  const handleDownload = () => {
+    if (processedImage && downloadRef.current) {
+      downloadRef.current.href = processedImage;
+      downloadRef.current.download = 'processed_image.jpg';
+      downloadRef.current.click();
+    }
+  };
 
-            {/* Hiển thị lỗi */}
-            {error && (
-                <div style={{ color: 'red', marginTop: '15px' }}>
-                    {error}
-                </div>
-            )}
-
-            {/* Hiển thị kết quả */}
-            {response && (
-                <div style={{ marginTop: '20px' }}>
-                    <h3>Kết quả:</h3>
-                    <img
-                        src={request.base64 === 'yes' ? `data:image/png;base64,${response}` : response}
-                        alt="Inpainted Image"
-                        style={{ maxWidth: '100%' }}
-                    />
-                </div>
-            )}
+  return (
+    <div className="inpaint-container">
+      <h2>Inpaint với Stable Diffusion</h2>
+      <div>
+        <label>Chọn ảnh: </label>
+        <input type="file" accept="image/*" onChange={handleFileChange} />
+      </div>
+      <div>
+        <label>Mô tả: </label>
+        <textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Nhập mô tả (ví dụ: 'Add a bird to the image')"
+          rows={4}
+          cols={50}
+        />
+      </div>
+      <button onClick={handleInpaint} disabled={loading}>
+        {loading ? 'Đang xử lý...' : 'Xử lý ảnh'}
+      </button>
+      {imageFile && (
+        <div>
+          <h3>Ảnh gốc:</h3>
+          <img src={URL.createObjectURL(imageFile)} alt="Original" style={{ maxWidth: '400px' }} />
         </div>
-    );
+      )}
+      {processedImage && (
+        <div>
+          <h3>Kết quả:</h3>
+          <img
+            src={processedImage}
+            alt="Processed"
+            style={{ maxWidth: '400px' }}
+            onError={(e) => console.error('Lỗi tải ảnh:', e)}
+          />
+          <button onClick={handleDownload}>Tải về ảnh</button>
+          <a ref={downloadRef} style={{ display: 'none' }} />
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default Inpaint;
