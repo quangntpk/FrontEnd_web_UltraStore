@@ -1,4 +1,3 @@
-// src/components/Cart.tsx
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import Footer from "@/components/Footer";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 import GiohangComboSupport from "@/components/GioHangComboSupport";
+import Swal from "sweetalert2";
 
 // Product type based on ctghSanPhamView with hinhAnh
 interface CartItem {
@@ -28,10 +28,13 @@ interface ComboItem {
   tenCombo: string;
   hinhAnh: string;
   soLuong: number;
+  chiTietGioHangCombo: number;
   sanPhamList: {
+    hinhAnh: string;
     maSanPham: string;
     soLuong: number;
     version: number;
+    tenSanPham: string;
   }[];
   gia: number;
 }
@@ -56,19 +59,11 @@ const CartPage = () => {
   const [discountApplied, setDiscountApplied] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboItem | null>(null);
-  const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>({
-    fullName: "",
-    email: "",
-    address: "",
-    city: "",
-    zipCode: "",
-    cardNumber: "",
-    cardName: "",
-    expiry: "",
-    cvv: "",
-  });
 
-  // Fetch cart data from API
+  const formatCurrency = (amount: number) => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   useEffect(() => {
     const fetchCartData = async () => {
       try {
@@ -85,11 +80,11 @@ const CartPage = () => {
 
         const processedComboItems = data.ctghComboView.map((combo: any) => ({
           ...combo,
+          chiTietGioHangCombo: combo.chiTietGioHangCombo,
           hinhAnh: combo.hinhAnh.startsWith("data:image")
             ? combo.hinhAnh
             : `data:image/jpeg;base64,${combo.hinhAnh}`,
         }));
-        console.log(processedComboItems);
         setComboItems(processedComboItems);
       } catch (error) {
         toast.error("Failed to load cart data");
@@ -99,24 +94,113 @@ const CartPage = () => {
     fetchCartData();
   }, []);
 
-  const handleQuantityChange = (idSanPham: string, change: number) => {
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.idSanPham === idSanPham
-          ? { ...item, soLuong: Math.max(1, item.soLuong + change) }
-          : item
-      )
-    );
+  const handleQuantityChange = async (idSanPham: string, change: number) => {
+    const info = {
+      MaKhachHang: "KH001",
+      IDSanPham: idSanPham,
+      IDCombo: null,
+    };
+
+    try {
+      if (change > 0) {
+        await fetch("http://localhost:5261/api/Cart/TangSoLuongSanPham", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(info),
+        });
+      } else {
+        await fetch("http://localhost:5261/api/Cart/GiamSoLuongSanPham", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(info),
+        });
+      }
+
+      setCartItems((prevItems) =>
+        prevItems.map((item) =>
+          item.idSanPham === idSanPham
+            ? { ...item, soLuong: Math.max(1, item.soLuong + change) }
+            : item
+        )
+      );
+    } catch (error) {
+      toast.error("Failed to update quantity");
+      console.error("Error updating quantity:", error);
+    }
   };
 
-  const handleRemoveItem = (idSanPham: string) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.idSanPham !== idSanPham));
-    toast.success("Item removed from cart");
+  const handleRemoveItem = async (idSanPham: string) => {
+    const result = await Swal.fire({
+      title: "Bạn có chắc không?",
+      text: "Bạn có muốn xóa sản phẩm này khỏi giỏ hàng?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Có, xóa nó!",
+      cancelButtonText: "Không, giữ lại",
+    });
+
+    if (result.isConfirmed) {
+      const info = {
+        MaKhachHang: "KH001",
+        IDSanPham: idSanPham,
+        IDCombo: null,
+      };
+      console.log(info)
+      try {
+        await fetch("http://localhost:5261/api/Cart/XoaSanPham", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(info),
+        });
+
+        setCartItems((prevItems) => prevItems.filter((item) => item.idSanPham !== idSanPham));
+        toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
+      } catch (error) {
+        toast.error("Xóa sản phẩm thất bại");
+        console.error("Error removing item:", error);
+      }
+    }
   };
 
-  const handleRemoveCombo = (idCombo: number) => {
-    setComboItems((prevItems) => prevItems.filter((item) => item.idCombo !== idCombo));
-    toast.success("Combo removed from cart");
+  const handleRemoveCombo = async (idCombo: number) => {
+    const result = await Swal.fire({
+      title: "Bạn có chắc không?",
+      text: "Bạn có muốn xóa combo này khỏi giỏ hàng?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Có, xóa nó!",
+      cancelButtonText: "Không, giữ lại",
+    });
+  
+    if (result.isConfirmed) {
+      const info = {
+        MaKhachHang: "KH001", 
+        IDSanPham: null,
+        IDCombo: idCombo,
+      };
+  
+      try {
+        await fetch("http://localhost:5261/api/Cart/XoaCombo", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(info),
+        });
+  
+        setComboItems((prevItems) => prevItems.filter((item) => item.idCombo !== idCombo));
+        toast.success("Đã xóa combo khỏi giỏ hàng");
+      } catch (error) {
+        toast.error("Xóa combo thất bại");
+        console.error("Error removing combo:", error);
+      }
+    }
   };
 
   const handleUpdateCombo = (updatedCombo: ComboItem) => {
@@ -136,7 +220,7 @@ const CartPage = () => {
 
   const calculateSubtotal = () => {
     const productTotal = cartItems.reduce((sum, item) => sum + item.tienSanPham * item.soLuong, 0);
-    const comboTotal = comboItems.reduce((sum, item) => sum + item.gia * item.soLuong, 0); // Use gia from API
+    const comboTotal = comboItems.reduce((sum, item) => sum + item.gia * item.soLuong, 0);
     return productTotal + comboTotal;
   };
 
@@ -147,6 +231,18 @@ const CartPage = () => {
   const calculateTotal = () => {
     return calculateSubtotal() - calculateDiscount();
   };
+
+  const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>({
+    fullName: "",
+    email: "",
+    address: "",
+    city: "",
+    zipCode: "",
+    cardNumber: "",
+    cardName: "",
+    expiry: "",
+    cvv: "",
+  });
 
   const handleCheckoutFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -215,7 +311,7 @@ const CartPage = () => {
                             Size: {item.kickThuoc} | Color: {item.mauSac}
                           </p>
                           <p className="text-muted-foreground">
-                            {(item.tienSanPham / 1000).toFixed(3)} VND
+                            {formatCurrency(item.tienSanPham)} VND
                           </p>
                         </div>
                         <div className="flex items-center mt-4 sm:mt-0">
@@ -260,7 +356,7 @@ const CartPage = () => {
                           <p className="text-muted-foreground">
                             Gồm: {combo.sanPhamList.length} sản phẩm
                           </p>
-                          <p className="text-muted-foreground">{(combo.gia / 1000).toFixed(3)} VND</p>
+                          <p className="text-muted-foreground">{formatCurrency(combo.gia)} VND</p>
                         </div>
                         <div className="flex items-center mt-4 sm:mt-0">
                           <span className="mx-2 w-8 text-center">{combo.soLuong}</span>
@@ -285,24 +381,24 @@ const CartPage = () => {
 
                   <div className="lg:col-span-1">
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-border">
-                      <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+                      <h2 className="text-xl font-semibold mb-4">Giỏ Hàng</h2>
 
                       <div className="space-y-3 mb-6">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Subtotal</span>
-                          <span>{(calculateSubtotal() / 1000).toFixed(3)} VND</span>
+                          <span className="text-muted-foreground">Tổng Tiền</span>
+                          <span>{formatCurrency(calculateSubtotal())} VND</span>
                         </div>
 
                         {discountApplied && (
                           <div className="flex justify-between text-green-600">
-                            <span>Discount (10%)</span>
-                            <span>-{(calculateDiscount() / 1000).toFixed(3)} VND</span>
+                            <span>Giảm Giá (10%)</span>
+                            <span>-{formatCurrency(calculateDiscount())} VND</span>
                           </div>
                         )}
 
                         <div className="border-t pt-3 flex justify-between font-medium">
-                          <span>Total</span>
-                          <span className="text-lg">{(calculateTotal() / 1000).toFixed(3)} VND</span>
+                          <span>Thành Tiền</span>
+                          <span className="text-lg">{formatCurrency(calculateTotal())} VND</span>
                         </div>
                       </div>
 
@@ -314,18 +410,18 @@ const CartPage = () => {
                           className="mr-2"
                         />
                         <Button size="sm" onClick={handleApplyPromo}>
-                          Apply
+                          Áp Dụng
                         </Button>
                       </div>
 
                       <Button className="w-full" onClick={() => setShowCheckout(true)}>
-                        Proceed to Checkout
+                        Chuyển đến trang Thanh Toán
                       </Button>
                       <Link
                         to="/"
                         className="block text-center text-primary hover:underline mt-4"
                       >
-                        Continue Shopping
+                        Quay về trang Sản Phẩm
                       </Link>
                     </div>
                   </div>
@@ -476,9 +572,7 @@ const CartPage = () => {
                               {item.tenSanPham}{" "}
                               <span className="text-xs">x{item.soLuong}</span>
                             </span>
-                            <span>
-                              {((item.tienSanPham * item.soLuong) / 1000).toFixed(3)} VND
-                            </span>
+                            <span>{formatCurrency(item.tienSanPham * item.soLuong)} VND</span>
                           </div>
                         ))}
                         {comboItems.map((combo) => (
@@ -487,7 +581,7 @@ const CartPage = () => {
                               {combo.tenCombo}{" "}
                               <span className="text-xs">x{combo.soLuong}</span>
                             </span>
-                            <span>{((combo.gia * combo.soLuong) / 1000).toFixed(3)} VND</span>
+                            <span>{formatCurrency(combo.gia * combo.soLuong)} VND</span>
                           </div>
                         ))}
 
@@ -495,19 +589,19 @@ const CartPage = () => {
 
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Subtotal</span>
-                          <span>{(calculateSubtotal() / 1000).toFixed(3)} VND</span>
+                          <span>{formatCurrency(calculateSubtotal())} VND</span>
                         </div>
 
                         {discountApplied && (
                           <div className="flex justify-between text-green-600">
                             <span>Discount (10%)</span>
-                            <span>-{(calculateDiscount() / 1000).toFixed(3)} VND</span>
+                            <span>-{formatCurrency(calculateDiscount())} VND</span>
                           </div>
                         )}
 
                         <div className="border-t pt-3 flex justify-between font-medium">
                           <span>Total</span>
-                          <span className="text-lg">{(calculateTotal() / 1000).toFixed(3)} VND</span>
+                          <span className="text-lg">{formatCurrency(calculateTotal())} VND</span>
                         </div>
                       </div>
                     </div>
@@ -531,8 +625,7 @@ const CartPage = () => {
       </main>
       <Footer />
 
-      {/* Combo Edit Modal */}
-      <Dialog.Root open={!!selectedCombo} onOpenChange={() => setSelectedCombo(null)}>
+      <Dialog.Root open={!!selectedCombo} onOpenChange={(open) => !open && setSelectedCombo(null)}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/50" />
           <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">

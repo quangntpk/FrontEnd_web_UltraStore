@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import Message from "./pages/Message";
 import Inpaint from "./pages/Inpaint";
 import ComboDetail from "./pages/ComboDetail";
+import SupportChat from "./components/SupportChat"; // Import component SupportChat
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -50,10 +51,10 @@ const App = () => (
           <Route path="/Contact" element={<Contact />} />
           <Route path="/message" element={<Message />} />
           <Route path="/inpaint" element={<Inpaint />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <SupportChat /> {/* Hộp thoại hỗ trợ luôn hiển thị */}
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

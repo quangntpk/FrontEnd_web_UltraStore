@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // Thêm useNavigate
 import { cn } from "@/lib/utils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Heart, ShoppingBag, Star } from "lucide-react";
+import Swal from "sweetalert2"; // Thêm import SweetAlert2
+
 const ComboDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate(); // Khởi tạo useNavigate
   const [combo, setCombo] = useState(null);
   const [selections, setSelections] = useState({});
   const [comboQuantity, setComboQuantity] = useState(1);
@@ -34,7 +37,7 @@ const ComboDetail = () => {
           id: comboData.maCombo,
           name: comboData.name,
           description: comboData.moTa || "Không có mô tả",
-          price: comboData.gia ,
+          price: comboData.gia,
           image: `data:image/jpeg;base64,${comboData.hinhAnh}`,
           quantity: comboData.soLuong,
           products: comboData.sanPhams.map(product => ({
@@ -45,7 +48,7 @@ const ComboDetail = () => {
             sizes: product.kichThuoc.map(size => ({
               size: size.trim(),
               quantity: product.soLuong,
-              price: product.donGia ,
+              price: product.donGia,
             })),
             colors: product.mauSac.map(color => `#${color}`),
             images: product.hinh.map(base64 => `data:image/jpeg;base64,${base64}`),
@@ -87,25 +90,51 @@ const ComboDetail = () => {
   };
 
   const handleAddToCart = async () => {
+    // Lấy userId từ localStorage
+    const userId = localStorage.getItem("userId");
+
+    // Kiểm tra nếu không có userId thì hiển thị SweetAlert và chuyển hướng
+    if (!userId) {
+      Swal.fire({
+        title: "Vui lòng đăng nhập!",
+        text: "Bạn cần đăng nhập để thêm combo vào giỏ hàng.",
+        icon: "warning",
+        timer: 2000, // Hiển thị trong 2 giây
+        timerProgressBar: true,
+        showConfirmButton: false,
+      }).then(() => {
+        navigate("/login"); // Chuyển hướng sau khi thông báo biến mất
+      });
+      return;
+    }
+
     const invalidProducts = combo.products.filter(
       product => selections[product.id].sizeIndex === null
     );
     if (invalidProducts.length > 0) {
-      alert("Vui lòng chọn kích thước cho tất cả sản phẩm trong combo!");
+      Swal.fire({
+        title: "Lỗi!",
+        text: "Vui lòng chọn kích thước cho tất cả sản phẩm trong combo!",
+        icon: "error",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
       return;
     }
 
     const cartData = {
-      IDKhachHang: "KH001", // Customer ID as string
-      IDCombo: Number(combo.id), // Ensure combo ID is a number
-      SoLuong: Number(comboQuantity), // Ensure quantity is a number
+      IDKhachHang: userId, // Sử dụng userId từ localStorage thay vì "KH001"
+      IDCombo: Number(combo.id),
+      SoLuong: Number(comboQuantity),
       Detail: combo.products.map(product => ({
-        MaSanPham: String(product.id), // Product ID as string
+        MaSanPham: String(product.id),
         MauSac: product.colors[selections[product.id].colorIndex].replace("#", ""),
-        KichThuoc: product.sizes[selections[product.id].sizeIndex].size, // Selected size
+        KichThuoc: product.sizes[selections[product.id].sizeIndex].size,
       })),
     };
-    console.log(cartData)
+    console.log(cartData);
+
     try {
       console.log("Sending cart data:", cartData); // For debugging
       
@@ -122,10 +151,24 @@ const ComboDetail = () => {
         throw new Error(`Failed to add combo to cart: ${errorText}`);
       }
   
-      alert("Đã thêm combo vào giỏ hàng thành công!");
+      Swal.fire({
+        title: "Thành công!",
+        text: "Đã thêm combo vào giỏ hàng thành công!",
+        icon: "success",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
     } catch (err) {
       console.error("Error adding combo to cart:", err);
-      alert(`Có lỗi xảy ra khi thêm vào giỏ hàng: ${err.message}`);
+      Swal.fire({
+        title: "Lỗi!",
+        text: `Có lỗi xảy ra khi thêm vào giỏ hàng: ${err.message}`,
+        icon: "error",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
     }
   };
 
@@ -201,7 +244,7 @@ const ComboDetail = () => {
             <div className="flex flex-col space-y-6">
               <h1 className="text-3xl md:text-4xl font-medium mb-6 gradient-text">{combo.name}</h1>
               <div>
-                <p className="text-2xl font-medium text-primary mb-4">{combo.price.toFixed} VND</p>
+                <p className="text-2xl font-medium text-primary mb-4">{combo.price.toFixed()} VND</p>
                 <p className="text-muted-foreground">{combo.description}</p>
               </div>
 

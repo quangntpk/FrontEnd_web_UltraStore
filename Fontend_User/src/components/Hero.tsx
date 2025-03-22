@@ -13,7 +13,7 @@ const Hero = () => {
         </div>
         
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-medium tracking-tight mb-6 md:mb-8 animate-fade-in opacity-0 gradient-text" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
-          Functional simplicity <br className="hidden md:block" />
+          Hello My Friend<br className="hidden md:block" />
           meets beautiful design
         </h1>
         

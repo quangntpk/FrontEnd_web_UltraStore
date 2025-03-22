@@ -20,10 +20,13 @@ const Combos = () => {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("grid");
   const [searchTerm, setSearchTerm] = useState("");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // Updated prop name
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedComboId, setSelectedComboId] = useState(null);
+  const [sortBy, setSortBy] = useState(""); // "" | "price-asc" | "price-desc" | "name-asc" | "name-desc"
+  const [currentPage, setCurrentPage] = useState(1);
+  const combosPerPage = 12;
 
   const fetchCombos = async () => {
     try {
@@ -38,7 +41,7 @@ const Combos = () => {
           sanPham: combo.sanPham || [],
         }));
         setCombos(normalizedData);
-        console.log(normalizedData)
+        console.log(normalizedData);
       } else {
         console.error("Lỗi khi lấy danh sách combo:", response.status);
         setCombos([]);
@@ -55,11 +58,38 @@ const Combos = () => {
     fetchCombos();
   }, []);
 
-  const filteredCombos = combos.filter(
-    (combo) =>
-      (combo.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (combo.maCombo?.toString() || "").includes(searchTerm)
-  );
+  const getSortedCombos = () => {
+    let filtered = [...combos].filter(
+      (combo) =>
+        (combo.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (combo.maCombo?.toString() || "").includes(searchTerm)
+    );
+
+    switch (sortBy) {
+      case "price-asc":
+        return filtered.sort((a, b) => (a.gia || 0) - (b.gia || 0));
+      case "price-desc":
+        return filtered.sort((a, b) => (b.gia || 0) - (a.gia || 0));
+      case "name-asc":
+        return filtered.sort((a, b) => 
+          (a.name || "").localeCompare(b.name || ""));
+      case "name-desc":
+        return filtered.sort((a, b) => 
+          (b.name || "").localeCompare(a.name || ""));
+      default:
+        return filtered;
+    }
+  };
+
+  const sortedCombos = getSortedCombos();
+  const indexOfLastCombo = currentPage * combosPerPage;
+  const indexOfFirstCombo = indexOfLastCombo - combosPerPage;
+  const currentCombos = sortedCombos.slice(indexOfFirstCombo, indexOfLastCombo);
+  const totalPages = Math.ceil(sortedCombos.length / combosPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const handleEditCombo = (combo) => {
     setSelectedComboId(combo.maCombo);
@@ -84,10 +114,13 @@ const Combos = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(`http://localhost:5261/api/Combo/DeleteCombo?id=${combo.maCombo}`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          });
+          const response = await fetch(
+            `http://localhost:5261/api/Combo/DeleteCombo?id=${combo.maCombo}`,
+            {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            }
+          );
 
           if (response.ok) {
             Swal.fire({
@@ -98,7 +131,7 @@ const Combos = () => {
               timerProgressBar: true,
               showConfirmButton: false,
             }).then(() => {
-              fetchCombos(); // Refresh list instead of reloading
+              fetchCombos();
             });
           } else {
             Swal.fire({
@@ -131,17 +164,20 @@ const Combos = () => {
       text: `Combo ${combo.name} mang mã ${combo.maCombo} sẽ chuyển sang trạng thái đang bán!`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       confirmButtonText: "Đang Bán",
       cancelButtonText: "Hủy",
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(`http://localhost:5261/api/Combo/ActiveCombo?id=${combo.maCombo}`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          });
+          const response = await fetch(
+            `http://localhost:5261/api/Combo/DeleteCombo?id=${combo.maCombo}&status=true`,
+            {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            }
+          );
 
           if (response.ok) {
             Swal.fire({
@@ -152,7 +188,7 @@ const Combos = () => {
               timerProgressBar: true,
               showConfirmButton: false,
             }).then(() => {
-              fetchCombos(); // Refresh list instead of reloading
+              fetchCombos();
             });
           } else {
             Swal.fire({
@@ -180,7 +216,7 @@ const Combos = () => {
   };
 
   const handleAddComboSuccess = () => {
-    fetchCombos(); // Refresh combo list after adding
+    fetchCombos();
     setIsCreateModalOpen(false);
   };
 
@@ -202,7 +238,7 @@ const Combos = () => {
         </div>
         <Button
           className="bg-purple hover:bg-purple-medium"
-          onClick={() => setIsCreateModalOpen(true)} // Trigger modal open
+          onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" /> Thêm Combo Mới
         </Button>
@@ -225,9 +261,34 @@ const Combos = () => {
               />
             </div>
             <div className="flex gap-2 self-end">
-              <Button variant="outline" size="sm" className="h-9">
-                <Filter className="h-4 w-4 mr-2" /> Lọc
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <Filter className="h-4 w-4 mr-2" />
+                    {sortBy === "" ? "Sắp xếp" : 
+                      sortBy === "price-asc" ? "Giá thấp - cao" :
+                      sortBy === "price-desc" ? "Giá cao - thấp" :
+                      sortBy === "name-asc" ? "A - Z" : "Z - A"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setSortBy("")}>
+                    Mặc định
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("price-asc")}>
+                    Giá: Thấp đến Cao
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("price-desc")}>
+                    Giá: Cao đến Thấp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("name-asc")}>
+                    Tên: A - Z
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("name-desc")}>
+                    Tên: Z - A
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="flex border rounded-md">
                 <Button
                   variant={view === "grid" ? "secondary" : "ghost"}
@@ -251,7 +312,7 @@ const Combos = () => {
 
           {view === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredCombos.map((combo) => (
+              {currentCombos.map((combo) => (
                 <Card key={combo.maCombo} className="hover-scale overflow-hidden group">
                   <div className="h-40 bg-purple-light flex items-center justify-center">
                     <img
@@ -289,12 +350,18 @@ const Combos = () => {
                           <DropdownMenuItem onClick={() => handleViewDetails(combo.maCombo)}>
                             Chi Tiết
                           </DropdownMenuItem>
-                          {combo.trangThai === 0 ? (
-                            <DropdownMenuItem onClick={() => handleActiveCombo(combo)} className="text-green-600">
+                          {combo.trangThai === false ? (
+                            <DropdownMenuItem
+                              onClick={() => handleActiveCombo(combo)}
+                              className="text-green-600"
+                            >
                               Mở Bán
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem onClick={() => handleDeleteCombo(combo)} className="text-red-600">
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteCombo(combo)}
+                              className="text-red-600"
+                            >
                               Ngừng Bán
                             </DropdownMenuItem>
                           )}
@@ -306,10 +373,10 @@ const Combos = () => {
                         <Tag className="h-3 w-3 mr-1" /> {(combo.sanPhams || []).length} sản phẩm
                       </Badge>
                       <Badge
-                        variant={combo.soLuong > 0 ? "default" : "destructive"}
+                        variant={combo.trangThai === true ? "default" : "destructive"}
                         className="flex flex-col justify-center items-center text-center h-full px-2"
                       >
-                        {combo.trangThai === 0 ? "Tạm Ngưng Bán" : "Đang Bán"}
+                        {combo.trangThai === true ? "Đang Bán" : "Ngừng Bán"}
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center mt-3">
@@ -326,7 +393,7 @@ const Combos = () => {
             </div>
           ) : (
             <div className="border rounded-md divide-y">
-              {filteredCombos.map((combo) => (
+              {currentCombos.map((combo) => (
                 <div
                   key={combo.maCombo}
                   className="p-4 flex items-center gap-4 hover:bg-muted/50"
@@ -374,12 +441,18 @@ const Combos = () => {
                       <DropdownMenuItem onClick={() => handleViewDetails(combo.maCombo)}>
                         Chi Tiết
                       </DropdownMenuItem>
-                      {combo.trangThai === 0 ? (
-                        <DropdownMenuItem onClick={() => handleActiveCombo(combo)} className="text-green-600">
+                      {combo.trangThai === false ? (
+                        <DropdownMenuItem
+                          onClick={() => handleActiveCombo(combo)}
+                          className="text-green-600"
+                        >
                           Mở Bán
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem onClick={() => handleDeleteCombo(combo)} className="text-red-600">
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteCombo(combo)}
+                          className="text-red-600"
+                        >
                           Ngừng Bán
                         </DropdownMenuItem>
                       )}
@@ -389,9 +462,41 @@ const Combos = () => {
               ))}
             </div>
           )}
-          {filteredCombos.length === 0 && (
+
+          {currentCombos.length === 0 && (
             <div className="text-center py-10">
               <p className="text-muted-foreground">Không tìm thấy combo nào</p>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Trước
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Sau
+              </Button>
             </div>
           )}
         </CardContent>
@@ -405,7 +510,7 @@ const Combos = () => {
       <CreateComboModal
         isCreateModalOpen={isCreateModalOpen}
         setIsCreateModalOpen={setIsCreateModalOpen}
-        onAddSuccess={handleAddComboSuccess} // Updated prop name
+        onAddSuccess={handleAddComboSuccess}
       />
       <ComboDetailAdminModal
         comboId={selectedComboId}

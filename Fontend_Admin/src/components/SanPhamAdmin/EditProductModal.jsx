@@ -13,6 +13,34 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
   const [chatLieu, setChatLieu] = useState("");
   const [images, setImages] = useState([]); // Lưu trữ base64 strings (bao gồm cả có tiền tố)
   const [errors, setErrors] = useState({});
+  const [loaiSanPhamList, setLoaiSanPhamList] = useState([]);
+  const [thuongHieuList, setThuongHieuList] = useState([]);
+
+  // Fetch dữ liệu từ API và khởi tạo dữ liệu sản phẩm
+  useEffect(() => {
+    const fetchLoaiSanPham = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/LoaiSanPham");
+        const data = await response.json();
+        setLoaiSanPhamList(data);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách loại sản phẩm:", error);
+      }
+    };
+
+    const fetchThuongHieu = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/ThuongHieu");
+        const data = await response.json();
+        setThuongHieuList(data);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách thương hiệu:", error);
+      }
+    };
+
+    fetchLoaiSanPham();
+    fetchThuongHieu();
+  }, []);
 
   useEffect(() => {
     if (productData && productData.length > 0) {
@@ -28,7 +56,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       setImages(cleanedImages);
 
       initializeColors(productData);
-      console.log(productData)
+      console.log(productData);
     }
   }, [productData]);
 
@@ -60,11 +88,10 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Loại bỏ tiền tố ngay khi đọc file từ drag and drop
         const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
         setImages(prevImages => [...prevImages, base64String]);
       };
-      reader.readAsDataURL(file); // Chuyển file thành base64
+      reader.readAsDataURL(file);
     });
   };
 
@@ -230,7 +257,12 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                     onChange={(e) => setMaThuongHieu(e.target.value)}
                     className="w-full p-2 border rounded-md"
                   >
-                    <option value="1">Gucci</option>
+                    <option value="">Chọn thương hiệu</option>
+                    {thuongHieuList.map((thuongHieu) => (
+                      <option key={thuongHieu.maThuongHieu} value={thuongHieu.maThuongHieu}>
+                        {thuongHieu.tenThuongHieu}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -240,7 +272,12 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                     onChange={(e) => setLoaiSanPham(e.target.value)}
                     className="w-full p-2 border rounded-md"
                   >
-                    <option value="1">Áo</option>
+                    <option value="">Chọn loại sản phẩm</option>
+                    {loaiSanPhamList.map((loai) => (
+                      <option key={loai.maLoaiSanPham} value={loai.maLoaiSanPham}>
+                        {loai.tenLoaiSanPham}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

@@ -54,7 +54,7 @@ const FeatureCard = ({ title, description, icon: Icon, delay, colorClass }: Feat
 
 const features = [
   {
-    title: "Elegant Simplicity",
+    title: "abcxyz",
     description: "Clean design that focuses on your content without unnecessary distractions.",
     icon: Sparkles,
     colorClass: "bg-purple-500",

@@ -95,15 +95,6 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
           >
             Chi Tiết
           </Link>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="ml-auto"
-            onClick={addToCart}
-          >
-            <ShoppingCart className="h-4 w-4 mr-1" /> 
-            Thêm Vào Giỏ Hàng
-          </Button>
         </div>
       </div>
     </div>

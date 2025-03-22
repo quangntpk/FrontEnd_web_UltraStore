@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,34 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const [chatLieu, setChatLieu] = useState("");
   const [images, setImages] = useState([]); 
   const [errors, setErrors] = useState({});
+  const [loaiSanPhamList, setLoaiSanPhamList] = useState([]);
+  const [thuongHieuList, setThuongHieuList] = useState([]);
+
+  // Fetch dữ liệu từ API khi component mount
+  useEffect(() => {
+    const fetchLoaiSanPham = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/LoaiSanPham");
+        const data = await response.json();
+        setLoaiSanPhamList(data);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách loại sản phẩm:", error);
+      }
+    };
+
+    const fetchThuongHieu = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/ThuongHieu");
+        const data = await response.json();
+        setThuongHieuList(data);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách thương hiệu:", error);
+      }
+    };
+
+    fetchLoaiSanPham();
+    fetchThuongHieu();
+  }, []);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -92,7 +120,6 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     let hasError = false;
     const colorSet = new Set();
 
-    // Validate dữ liệu
     if (!tenSanPham) {
       errorList["tenSanPham"] = "Tên sản phẩm không được để trống.";
       hasError = true;
@@ -105,7 +132,9 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     newProductData.forEach((item, index) => {
       if (colorSet.has(item.MauSac)) {
         errorList[`${index}-mauSac`] = `- Màu ${item.MauSac} đã tồn tại.`;
-        hasError = true;
+        hasバック
+
+hasError = true;
       } else {
         colorSet.add(item.MauSac);
       }
@@ -130,54 +159,54 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     });
 
     if (hasError) {
-        setErrors(errorList);
-      } else {
-        setErrors({});
-        console.log("Dữ liệu gửi đi:", newProductData);
-        try {
-          const response = await fetch("http://localhost:5261/api/SanPham/CreateSanPham", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(newProductData),
+      setErrors(errorList);
+    } else {
+      setErrors({});
+      console.log("Dữ liệu gửi đi:", newProductData);
+      try {
+        const response = await fetch("http://localhost:5261/api/SanPham/CreateSanPham", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newProductData),
+        });
+
+        if (response.ok) {
+          Swal.fire({
+            title: "Thành công!",
+            text: "Thêm sản phẩm thành công!",
+            icon: "success",
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+          }).then(() => {
+            setIsAddModalOpen(false);
+            if (props.onSuccess) props.onSuccess(); 
+            window.location.reload();
           });
-    
-          if (response.ok) {
-            Swal.fire({
-              title: "Thành công!",
-              text: "Thêm sản phẩm thành công!",
-              icon: "success",
-              timer: 3000,
-              timerProgressBar: true,
-              showConfirmButton: false,
-            }).then(() => {
-              setIsAddModalOpen(false);
-              if (props.onSuccess) props.onSuccess(); 
-              window.location.reload();
-            });
-          } else {
-            Swal.fire({
-              title: "Lỗi!",
-              text: "Có lỗi xảy ra khi thêm sản phẩm.",
-              icon: "error",
-              timer: 3000,
-              timerProgressBar: true,
-              showConfirmButton: false,
-            });
-          }
-        } catch (error) {
-          console.error("Lỗi khi gửi dữ liệu:", error);
+        } else {
           Swal.fire({
             title: "Lỗi!",
-            text: "Có lỗi xảy ra khi gửi dữ liệu tới API.",
+            text: "Có lỗi xảy ra khi thêm sản phẩm.",
             icon: "error",
             timer: 3000,
             timerProgressBar: true,
             showConfirmButton: false,
           });
         }
+      } catch (error) {
+        console.error("Lỗi khi gửi dữ liệu:", error);
+        Swal.fire({
+          title: "Lỗi!",
+          text: "Có lỗi xảy ra khi gửi dữ liệu tới API.",
+          icon: "error",
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
       }
+    }
   };
 
   return (
@@ -208,7 +237,11 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="">Chọn thương hiệu</option>
-                    <option value="1">Gucci</option>
+                    {thuongHieuList.map((thuongHieu) => (
+                      <option key={thuongHieu.maThuongHieu} value={thuongHieu.maThuongHieu}>
+                        {thuongHieu.tenThuongHieu}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -219,7 +252,11 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="">Chọn loại sản phẩm</option>
-                    <option value="1">Áo</option>
+                    {loaiSanPhamList.map((loai) => (
+                      <option key={loai.maLoaiSanPham} value={loai.maLoaiSanPham}>
+                        {loai.tenLoaiSanPham}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

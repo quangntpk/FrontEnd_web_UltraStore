@@ -114,30 +114,34 @@ const CreateComboModal = ({ isCreateModalOpen, setIsCreateModalOpen }) => {
     }
   };
 
-  // Hàm validate form
   const validateForm = () => {
     const newErrors = {};
-
+  
     if (!combo.TenCombo.trim()) {
       newErrors.TenCombo = "Tên combo không được để trống";
     }
-
+  
     if (!combo.MoTa.trim()) {
       newErrors.MoTa = "Mô tả không được để trống";
     }
-
+  
     if (combo.Gia <= 1) {
       newErrors.Gia = "Giá phải lớn hơn 1";
     }
-
+  
     if (!combo.HinhAnh) {
       newErrors.HinhAnh = "Vui lòng chọn ít nhất 1 hình ảnh";
     }
-
+  
     if (combo.SanPham.length === 0) {
       newErrors.SanPham = "Combo phải có ít nhất 1 sản phẩm";
     }
-
+  
+    // Validation cho Số Lượng
+    if (combo.SoLuong < 0) {
+      newErrors.SoLuong = "Số lượng không thể nhỏ hơn 0";
+    }
+  
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -258,6 +262,23 @@ const CreateComboModal = ({ isCreateModalOpen, setIsCreateModalOpen }) => {
                   )}
                   {errors.HinhAnh && (
                     <p className="text-red-500 text-sm mt-1">{errors.HinhAnh}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block mb-1 font-medium">Số Lượng</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={combo.SoLuong}
+                    onChange={(e) => {
+                      setCombo({ ...combo, SoLuong: parseInt(e.target.value) || 0 });
+                      setErrors({ ...errors, SoLuong: "" });
+                    }}
+                    className="w-full"
+                  />
+                  {errors.SoLuong && (
+                    <p className="text-red-500 text-sm mt-1">{errors.SoLuong}</p>
                   )}
                 </div>
                 <div>

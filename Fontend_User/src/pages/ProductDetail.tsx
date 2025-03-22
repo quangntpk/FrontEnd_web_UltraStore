@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react"; 
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Heart, ShoppingBag, Star } from "lucide-react";
+import Swal from "sweetalert2"; // Thêm import SweetAlert2
 
 const ProductDetail = () => {
   const { productId } = useParams();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
-  const [selectedSizeIndex, setSelectedSizeIndex] = useState(null); // Thêm state cho kích thước được chọn
+  const [selectedSizeIndex, setSelectedSizeIndex] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -82,8 +84,33 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = async () => {
+    // Lấy userId từ localStorage
+    const userId = localStorage.getItem("userId");
+
+    // Kiểm tra nếu không có userId thì hiển thị SweetAlert và chuyển hướng
+    if (!userId) {
+      Swal.fire({
+        title: "Vui lòng đăng nhập!",
+        text: "Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.",
+        icon: "warning",
+        timer: 2000, // Hiển thị trong 2 giây
+        timerProgressBar: true,
+        showConfirmButton: false,
+      }).then(() => {
+        navigate("/login"); // Chuyển hướng sau khi thông báo biến mất
+      });
+      return;
+    }
+
     if (selectedSizeIndex === null) {
-      alert("Vui lòng chọn kích thước trước khi thêm vào giỏ hàng!");
+      Swal.fire({
+        title: "Lỗi!",
+        text: "Vui lòng chọn kích thước trước khi thêm vào giỏ hàng!",
+        icon: "error",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
       return;
     }
 
@@ -91,11 +118,11 @@ const ProductDetail = () => {
     const selectedSize = selectedProduct.sizes[selectedSizeIndex];
 
     const cartData = {
-      IDNguoiDung: "KH0001", 
-      IDSanPham: productId.split('_')[0] || productId, 
-      MauSac: selectedProduct.colorCode, 
-      KichThuoc: selectedSize.size, 
-      SoLuong: quantity 
+      IDNguoiDung: userId,
+      IDSanPham: productId.split('_')[0] || productId,
+      MauSac: selectedProduct.colorCode,
+      KichThuoc: selectedSize.size,
+      SoLuong: quantity
     };
 
     try {
@@ -110,10 +137,24 @@ const ProductDetail = () => {
       if (!response.ok) {
         throw new Error("Failed to add to cart");
       }
-      alert("Đã thêm vào giỏ hàng thành công!");
+      Swal.fire({
+        title: "Thành công!",
+        text: "Đã thêm vào giỏ hàng thành công!",
+        icon: "success",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
     } catch (err) {
       console.error("Error adding to cart:", err);
-      alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+      Swal.fire({
+        title: "Lỗi!",
+        text: "Có lỗi xảy ra khi thêm vào giỏ hàng!",
+        icon: "error",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
     }
   };
 
@@ -138,7 +179,7 @@ const ProductDetail = () => {
   const availableSizes = getSizesForColor();
   const selectedPrice = selectedSizeIndex !== null 
     ? currentProduct.sizes[selectedSizeIndex].price 
-    : currentProduct.price; // Giá thay đổi theo kích thước
+    : currentProduct.price;
 
   return (
     <>
@@ -219,7 +260,7 @@ const ProductDetail = () => {
                       style={{ backgroundColor: item.color }}
                       onClick={() => {
                         setSelectedColorIndex(index);
-                        setSelectedSizeIndex(null); 
+                        setSelectedSizeIndex(null);
                       }}
                       aria-label={`Select color ${item.color}`}
                     />
