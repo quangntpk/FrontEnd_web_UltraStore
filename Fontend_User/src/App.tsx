@@ -58,6 +58,9 @@ const App = () => (
           <Route path="/YeuThich" element={<YeuThich />} />
           <Route path="/message" element={<Message />} />
           <Route path="/inpaint" element={<Inpaint />} />
+          <Route path="/message" element={<Message />} />
+          <Route path="/inpaint" element={<Inpaint />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
