@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { FaEye, FaTrashAlt, FaEdit, FaEllipsisV } from 'react-icons/fa';
-
 import {
   Card,
   CardContent,
@@ -32,6 +31,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import toast, { Toaster } from "react-hot-toast";
 
+// Hàm định dạng ngày giờ
+const formatDateTime = (dateString) => {
+  return new Date(dateString).toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
 const Vouchers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [vouchers, setVouchers] = useState([]);
@@ -51,7 +59,7 @@ const Vouchers = () => {
     dieuKien: '',
     soLuong: '',
     hinhAnh: '',
-    trangThai: 0, // Mặc định là "Đang Dùng"
+    trangThai: 0,
   });
   const [editVoucher, setEditVoucher] = useState(null);
 
@@ -67,7 +75,6 @@ const Vouchers = () => {
       setVouchers(data);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách voucher:', error);
-     
     } finally {
       setLoading(false);
     }
@@ -485,65 +492,81 @@ const Vouchers = () => {
 
       {/* Modal chi tiết voucher */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-        <DialogContent>
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Chi Tiết Voucher</DialogTitle>
           </DialogHeader>
           {selectedVoucher && (
-            <div className="space-y-4">
-              {selectedVoucher.hinhAnh && (
-                <img
-                  src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
-                  alt={selectedVoucher.tenVoucher}
-                  className="w-full h-64 object-cover rounded"
-                />
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div><strong>ID:</strong> {selectedVoucher.maVoucher}</div>
-                  <div><strong>Tên Voucher:</strong> {selectedVoucher.tenVoucher}</div>
-                  <div><strong>Giá Trị:</strong> {selectedVoucher.giaTri} %</div>
-                  <div><strong>Mô Tả:</strong> {selectedVoucher.moTa}</div>
-                  <div><strong>Điều Kiện Trên:</strong> {selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND</div>
-                  <div><strong>Số Lượng:</strong> {selectedVoucher.soLuong}</div>
-                  <div>
-                    <strong>Trạng Thái:</strong>
-                    <span
-                      className={
-                        selectedVoucher.trangThai === 1
-                          ? "bg-red-100 text-red-800 px-2 py-1 rounded ml-2"
-                          : "bg-green-100 text-green-800 px-2 py-1 rounded ml-2"
-                      }
-                    >
-                      {selectedVoucher.trangThai === 0 ? "Đang Dùng" : "Tạm Ngưng"}
-                    </span>
-                  </div>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mã Voucher</label>
+                  <Input value={selectedVoucher.maVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
                 </div>
-                <div className="space-y-2">
-                  <div><strong>Ngày Bắt Đầu:</strong> {new Date(selectedVoucher.ngayBatDau).toLocaleDateString()}</div>
-                  <div><strong>Ngày Kết Thúc:</strong> {new Date(selectedVoucher.ngayKetThuc).toLocaleDateString()}</div>
-                  <div>
-                    <strong>Mã Coupon:</strong>
-                    {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
-                      <ul className="list-disc pl-5">
-                        {selectedVoucher.coupons.map((coupon) => (
-                          <li
-                            key={coupon.id}
-                            className={coupon.trangThai === 1 ? "line-through text-gray-500" : ""}
-                          >
-                            {coupon.maNhap}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span className="text-gray-500">Không có mã</span>
-                    )}
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
+                  <Input value={selectedVoucher.tenVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Giá Trị</label>
+                  <Input value={selectedVoucher.giaTri ? `${selectedVoucher.giaTri} %` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
+                  <Input value={selectedVoucher.ngayBatDau ? formatDateTime(selectedVoucher.ngayBatDau) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
+                  <Input value={selectedVoucher.ngayKetThuc ? formatDateTime(selectedVoucher.ngayKetThuc) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Điều Kiện Trên</label>
+                  <Input value={selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Số Lượng</label>
+                  <Input value={selectedVoucher.soLuong || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Trạng Thái</label>
+                  <Input value={selectedVoucher.trangThai === 0 ? "Đang Dùng" : "Tạm Ngưng"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
+                  {selectedVoucher.hinhAnh ? (
+                    <img src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`} alt={selectedVoucher.tenVoucher} className="w-24 h-24 object-cover rounded mt-1 border" />
+                  ) : (
+                    <Input value="Chưa có hình ảnh" disabled className="mt-1 bg-gray-50" />
+                  )}
+                </div>
+              </div>
+              <div className="md:col-span-3 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mô Tả</label>
+                  <Input value={selectedVoucher.moTa || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mã Coupon</label>
+                  {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
+                    <ul className="list-disc pl-5 mt-1 space-y-1 max-h-26 overflow-y-auto border rounded p-2 bg-gray-50">
+                      {selectedVoucher.coupons.map((coupon) => (
+                        <li key={coupon.id} className={coupon.trangThai === 1 ? "line-through text-gray-500" : "text-gray-800"}>
+                          {coupon.maNhap}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Input value="Không có mã" disabled className="mt-1 bg-gray-50" />
+                  )}
                 </div>
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
               Đóng
             </Button>
@@ -553,42 +576,71 @@ const Vouchers = () => {
 
       {/* Modal thêm voucher */}
       <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
-        <DialogContent>
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Thêm Voucher Mới</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <Input name="tenVoucher" placeholder="Tên Voucher" value={newVoucher.tenVoucher} onChange={handleInputChange} required />
-            <Input name="giaTri" type="number" placeholder="Giá trị (%)" value={newVoucher.giaTri} onChange={handleInputChange} required />
-            <Input name="moTa" placeholder="Mô tả" value={newVoucher.moTa} onChange={handleInputChange} />
-            <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={newVoucher.ngayBatDau} onChange={handleInputChange} min={today} required />
-            <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={newVoucher.ngayKetThuc} onChange={handleInputChange} min={newVoucher.ngayBatDau || today} required />
-            <Input name="dieuKien" type="number" placeholder="Điều kiện (VND)" value={newVoucher.dieuKien} onChange={handleInputChange} required />
-            <Input name="soLuong" type="number" placeholder="Số lượng" value={newVoucher.soLuong} onChange={handleInputChange} required />
-            <div>
-              <Label>Trạng Thái</Label>
-              <RadioGroup
-                value={newVoucher.trangThai.toString()}
-                onValueChange={(value) => setNewVoucher({ ...newVoucher, trangThai: parseInt(value) })}
-                className="flex space-x-4 mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="0" id="dang-dung" />
-                  <Label htmlFor="dang-dung">Đang Dùng</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="1" id="tam-ngung" />
-                  <Label htmlFor="tam-ngung">Tạm Ngưng</Label>
-                </div>
-              </RadioGroup>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
+                <Input name="tenVoucher" placeholder="Tên Voucher" value={newVoucher.tenVoucher} onChange={handleInputChange} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Giá trị (%)</label>
+                <Input name="giaTri" type="number" placeholder="Giá trị (%)" value={newVoucher.giaTri} onChange={handleInputChange} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Mô tả</label>
+                <Input name="moTa" placeholder="Mô tả" value={newVoucher.moTa} onChange={handleInputChange} />
+              </div>
             </div>
-            <Input name="hinhAnh" type="file" accept="image/*" onChange={handleImageChange} />
-            {newVoucher.hinhAnh && (
-              <img src={`data:image/jpeg;base64,${newVoucher.hinhAnh}`} alt="Preview" className="w-32 h-32 object-cover rounded" />
-            )}
-            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
+                <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={newVoucher.ngayBatDau} onChange={handleInputChange} min={today} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
+                <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={newVoucher.ngayKetThuc} onChange={handleInputChange} min={newVoucher.ngayBatDau || today} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Điều Kiện (VND)</label>
+                <Input name="dieuKien" type="number" placeholder="Điều kiện (VND)" value={newVoucher.dieuKien} onChange={handleInputChange} required />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Số Lượng</label>
+                <Input name="soLuong" type="number" placeholder="Số lượng" value={newVoucher.soLuong} onChange={handleInputChange} required />
+              </div>
+              <div>
+                <Label>Trạng Thái</Label>
+                <RadioGroup
+                  value={newVoucher.trangThai.toString()}
+                  onValueChange={(value) => setNewVoucher({ ...newVoucher, trangThai: parseInt(value) })}
+                  className="flex space-x-4 mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="0" id="dang-dung" />
+                    <Label htmlFor="dang-dung">Đang Dùng</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="1" id="tam-ngung" />
+                    <Label htmlFor="tam-ngung">Tạm Ngưng</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
+                <Input name="hinhAnh" type="file" accept="image/*" onChange={handleImageChange} />
+                {newVoucher.hinhAnh && (
+                  <img src={`data:image/jpeg;base64,${newVoucher.hinhAnh}`} alt="Preview" className="w-24 h-24 object-cover rounded mt-2" />
+                )}
+              </div>
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setOpenCreateModal(false)}>Hủy</Button>
             <Button onClick={createVoucher}>Thêm</Button>
           </DialogFooter>
@@ -597,44 +649,73 @@ const Vouchers = () => {
 
       {/* Modal sửa voucher */}
       <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
-        <DialogContent>
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Sửa Voucher</DialogTitle>
           </DialogHeader>
           {editVoucher && (
-            <div className="space-y-4">
-              <Input name="tenVoucher" placeholder="Tên Voucher" value={editVoucher.tenVoucher} onChange={handleEditInputChange} required />
-              <Input name="giaTri" type="number" placeholder="Giá trị (%)" value={editVoucher.giaTri} onChange={handleEditInputChange} required />
-              <Input name="moTa" placeholder="Mô tả" value={editVoucher.moTa || ''} onChange={handleEditInputChange} />
-              <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={editVoucher.ngayBatDau} onChange={handleEditInputChange} min={today} required />
-              <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={editVoucher.ngayKetThuc} onChange={handleEditInputChange} min={editVoucher.ngayBatDau || today} required />
-              <Input name="dieuKien" type="number" placeholder="Điều kiện (VND)" value={editVoucher.dieuKien} onChange={handleEditInputChange} required />
-              <Input name="soLuong" type="number" placeholder="Số lượng" value={editVoucher.soLuong} onChange={handleEditInputChange} required />
-              <div>
-                <Label>Trạng Thái</Label>
-                <RadioGroup
-                  value={editVoucher.trangThai.toString()}
-                  onValueChange={(value) => setEditVoucher({ ...editVoucher, trangThai: parseInt(value) })}
-                  className="flex space-x-4 mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="0" id="dang-dung-edit" />
-                    <Label htmlFor="dang-dung-edit">Đang Dùng</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="1" id="tam-ngung-edit" />
-                    <Label htmlFor="tam-ngung-edit">Tạm Ngưng</Label>
-                  </div>
-                </RadioGroup>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
+                  <Input name="tenVoucher" placeholder="Tên Voucher" value={editVoucher.tenVoucher} onChange={handleEditInputChange} required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Giá trị (%)</label>
+                  <Input name="giaTri" type="number" placeholder="Giá trị (%)" value={editVoucher.giaTri} onChange={handleEditInputChange} required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mô tả</label>
+                  <Input name="moTa" placeholder="Mô tả" value={editVoucher.moTa || ''} onChange={handleEditInputChange} />
+                </div>
               </div>
-              <Input name="hinhAnh" type="file" accept="image/*" onChange={handleEditImageChange} />
-              {editVoucher.hinhAnh && (
-                <img src={`data:image/jpeg;base64,${editVoucher.hinhAnh}`} alt="Preview" className="w-32 h-32 object-cover rounded" />
-              )}
-              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
+                  <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={editVoucher.ngayBatDau} onChange={handleEditInputChange} min={today} required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
+                  <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={editVoucher.ngayKetThuc} onChange={handleEditInputChange} min={editVoucher.ngayBatDau || today} required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Điều Kiện (VND)</label>
+                  <Input name="dieuKien" type="number" placeholder="Điều kiện (VND)" value={editVoucher.dieuKien} onChange={handleEditInputChange} required />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Số Lượng</label>
+                  <Input name="soLuong" type="number" placeholder="Số lượng" value={editVoucher.soLuong} onChange={handleEditInputChange} required />
+                </div>
+                <div>
+                  <Label>Trạng Thái</Label>
+                  <RadioGroup
+                    value={editVoucher.trangThai.toString()}
+                    onValueChange={(value) => setEditVoucher({ ...editVoucher, trangThai: parseInt(value) })}
+                    className="flex space-x-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="0" id="dang-dung-edit" />
+                      <Label htmlFor="dang-dung-edit">Đang Dùng</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="1" id="tam-ngung-edit" />
+                      <Label htmlFor="tam-ngung-edit">Tạm Ngưng</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
+                  <Input name="hinhAnh" type="file" accept="image/*" onChange={handleEditImageChange} />
+                  {editVoucher.hinhAnh && (
+                    <img src={`data:image/jpeg;base64,${editVoucher.hinhAnh}`} alt="Preview" className="w-24 h-24 object-cover rounded mt-2" />
+                  )}
+                </div>
+              </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setOpenEditModal(false)}>Hủy</Button>
             <Button onClick={editVoucherSubmit}>Lưu</Button>
           </DialogFooter>
