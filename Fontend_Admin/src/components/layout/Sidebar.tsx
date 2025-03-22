@@ -75,7 +75,8 @@ const Sidebar = () => {
     { to: '/analytics', icon: BarChart, label: 'Liên Hệ' },
     { to: '/invoices', icon: FileText, label: 'Quản lý Voucher' },
     { to: '/inventory', icon: Store, label: 'Quản lý bình luận' },
-    { to: '/combos', icon: Zap, label: 'Quản lý Combo'}
+    { to: '/combos', icon: Zap, label: 'Quản lý Combo'},
+    { to: '/Giaodien', icon: Calendar, label: 'Giao diện'}
   ];
 
   const additionalNavItems = [

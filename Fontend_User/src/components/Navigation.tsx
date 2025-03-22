@@ -26,7 +26,7 @@ import axios from "axios";
     }, 
     {
       name: "Contact",
-      path: "#contact"
+      path: "/contact"
     }
   ];
 

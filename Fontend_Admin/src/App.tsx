@@ -15,6 +15,8 @@ import Inventory from "./pages/inventory";
 import Invoices from "./pages/Invoices";
 import Settings from "./pages/Settings";
 import Combos from "./pages/Combos.tsx";
+import Login from "./pages/Login";
+import Giaodien from "./pages/Giaodien";
 // Create placeholder pages for the new routes
 const Payments = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Payments</h1><p>Payments management page coming soon.</p></div>;
 const Marketing = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Marketing</h1><p>Marketing management page coming soon.</p></div>;
@@ -36,6 +38,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<Login />} />
           <Route element={<AdminLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/orders" element={<Orders />} />
@@ -46,6 +49,7 @@ const App = () => (
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/combos" element={<Combos/>} />
+            <Route path="/giaodien" element={<Giaodien/>} />
             {/* New routes */}
             <Route path="/payments" element={<Payments />} />
             <Route path="/marketing" element={<Marketing />} />
