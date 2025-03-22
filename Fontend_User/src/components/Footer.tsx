@@ -10,25 +10,25 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-16">
           <div>
             <div className="mb-4">
-              <span className="text-xl font-medium tracking-tight">Minimalist</span>
+              <span className="text-xl font-medium tracking-tight">UltraStore</span>
             </div>
             <p className="text-muted-foreground max-w-xs">
-              Embracing simplicity in design while maintaining functionality and elegance.
+            Áp dụng sự đơn giản trong thiết kế nhưng vẫn duy trì tính năng và tính thanh lịch.
             </p>
           </div>
           
           {[
             {
-              title: "Product",
-              links: ["Features", "Pricing", "Updates", "Beta Program", "Roadmap"],
+              title: "Sản phẩm",
+              links: ["Tính năng", "Giá cả", "Cập nhật", "Chương trình", "Yêu thích"],
             },
             {
-              title: "Company",
-              links: ["About", "Careers", "Contact", "Press", "Partners"],
+              title: "Công ty",
+              links: ["Giới thiệu", "Nghề nghiệp", "Liên hệ", "Báo chí", "Đối tác"],
             },
             {
-              title: "Resources",
-              links: ["Blog", "Newsletter", "Support", "Documentation", "Legal"],
+              title: "Tài nguyên",
+              links: ["Blog", "Bản tin", "Hỗ trợ", "Tài liệu", "Pháp lý"],
             },
           ].map((group) => (
             <div key={group.title}>
@@ -51,7 +51,7 @@ const Footer = () => {
         
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-            © {year} Minimalist. All rights reserved.
+            © {year} Tối giản. Đảm bảo quyền lợi của mọi người.
           </p>
           
           <div className="flex gap-6">

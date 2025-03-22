@@ -1,42 +1,45 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Package, 
-  Users, 
-  BarChart, 
-  Settings, 
-  ChevronLeft, 
+  BarChart,              
+  ShoppingCart,          
+  Package,              
+  Users,               
+  Mail,               
+  Ticket,            
+  MessageSquare,    
+  Zap,             
+  Layers,         
+  Award,         
+  CreditCard,   
+  Megaphone,   
+  Inbox,      
+  MessageCircle, 
+  Calendar,    
+  TrendingUp, 
+  Settings,  
+  HelpCircle, 
+  Heart,     
+  Globe,    
+  Shield,  
+  Tags,   
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   ChevronDown,
-  FileText,
-  Store,
-  CreditCard,
-  Mail,
-  MessageSquare,
-  Calendar,
-  HelpCircle,
-  Heart,
-  Globe,
-  TrendingUp,
-  Zap,
-  Shield,
-  Tags,
-  Layers,
-  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-type NavItemProps = {
+// Định nghĩa interface NavItemProps
+interface NavItemProps {
   to: string;
   icon: React.ElementType;
   label: string;
   isCollapsed: boolean;
-};
+}
 
+// Component NavItem
 const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
   return (
     <NavLink
@@ -78,37 +81,36 @@ const Sidebar = () => {
   };
 
   const mainNavItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/orders', icon: ShoppingCart, label: 'Orders' },
-    { to: '/products', icon: Package, label: 'Quản lý Sản Phẩm' },
-    // "Danh Mục" sẽ được thêm ngay dưới "Quản lý Sản Phẩm" trong phần render
-    { to: '/customers', icon: Users, label: 'Tài Khoản' },
-    { to: '/analytics', icon: BarChart, label: 'Liên Hệ' },
-    { to: '/invoices', icon: FileText, label: 'Quản lý Voucher' },
-    { to: '/inventory', icon: Store, label: 'Quản lý bình luận' },
-    { to: '/combos', icon: Zap, label: 'Quản lý Combo' },
+    { to: '/', icon: BarChart, label: 'Thống kê' },           
+    { to: '/orders', icon: ShoppingCart, label: 'Đơn Hàng' }, 
+    { to: '/products', icon: Package, label: 'Sản Phẩm' },    
+    { to: '/customers', icon: Users, label: 'Tài Khoản' },    
+    { to: '/analytics', icon: Mail, label: 'Liên Hệ' },       
+    { to: '/invoices', icon: Ticket, label: 'Voucher' },      
+    { to: '/inventory', icon: MessageSquare, label: 'Bình luận' }, 
+    { to: '/combos', icon: Zap, label: 'Combo' },             
   ];
 
   const categoryItems = [
-    { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' },
-    { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },
+    { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' }, 
+    { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },     
   ];
 
   const additionalNavItems = [
-    { to: '/payments', icon: CreditCard, label: 'Payments' },
-    { to: '/marketing', icon: Zap, label: 'Marketing' },
-    { to: '/messages', icon: Mail, label: 'Messages' },
-    { to: '/chat', icon: MessageSquare, label: 'Chat' },
-    { to: '/calendar', icon: Calendar, label: 'Calendar' },
-    { to: '/reports', icon: TrendingUp, label: 'Reports' },
+    { to: '/payments', icon: CreditCard, label: 'Payments' },     
+    { to: '/marketing', icon: Megaphone, label: 'Marketing' },    
+    { to: '/messages', icon: Inbox, label: 'Messages' },          
+    { to: '/chat', icon: MessageCircle, label: 'Chat' },          
+    { to: '/calendar', icon: Calendar, label: 'Calendar' },       
+    { to: '/reports', icon: TrendingUp, label: 'Reports' },       
   ];
 
   const supportNavItems = [
-    { to: '/settings', icon: Settings, label: 'Settings' },
-    { to: '/help', icon: HelpCircle, label: 'Help Center' },
-    { to: '/favorites', icon: Heart, label: 'Favorites' },
-    { to: '/website', icon: Globe, label: 'Website' },
-    { to: '/security', icon: Shield, label: 'Security' },
+    { to: '/settings', icon: Settings, label: 'Settings' },       
+    { to: '/help', icon: HelpCircle, label: 'Help Center' },      
+    { to: '/favorites', icon: Heart, label: 'Favorites' },        
+    { to: '/website', icon: Globe, label: 'Website' },            
+    { to: '/security', icon: Shield, label: 'Security' },         
   ];
 
   return (
@@ -155,7 +157,6 @@ const Sidebar = () => {
                 label={item.label}
                 isCollapsed={isCollapsed}
               />
-              {/* Thêm Category Menu ngay dưới "Quản lý Sản Phẩm" (index === 2) */}
               {index === 2 && (
                 <div className={cn('rounded-md transition-all duration-300')}>
                   <button

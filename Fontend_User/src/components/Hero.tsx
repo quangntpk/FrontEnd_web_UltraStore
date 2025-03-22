@@ -1,6 +1,6 @@
-
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
+import { Link } from 'react-router-dom'; 
 
 const Hero = () => {
   return (
@@ -8,27 +8,27 @@ const Hero = () => {
       <div className="container mx-auto max-w-6xl z-10">
         <div className="inline-block mb-4 animate-fade-in opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
           <span className="px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
-            Colorful Design
+            UltraStore
           </span>
         </div>
         
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-medium tracking-tight mb-6 md:mb-8 animate-fade-in opacity-0 gradient-text" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
-          Hello My Friend<br className="hidden md:block" />
-          meets beautiful design
+          Shop quần áo <br className="hidden md:block" />
+          Thiết kế đẹp
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 animate-fade-in opacity-0" style={{ animationDelay: "600ms", animationFillMode: "forwards" }}>
-          Creating a harmonious balance between simplicity and functionality. Every element serves a purpose, delivering a seamless and intuitive experience.
+          Tạo sự cân bằng hài hòa giữa tính đơn giản và hiện đại đến tận cốt lõi. Mỗi sản phẩm đều có mục đích thiết kế riêng, mang lại trải nghiệm tốt.
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
           <a href="#products" className="inline-flex items-center justify-center h-12 px-6 gradient-bg text-white rounded-full hover:opacity-90 transition-opacity">
-            Explore Products
+            Xem Nhanh
           </a>
-          <a href="#about" className="inline-flex items-center justify-center h-12 px-6 border border-primary/30 rounded-full hover:bg-primary/5 transition-colors">
-            Learn More
+          <Link to="/products" className="inline-flex items-center justify-center h-12 px-6 border border-primary/30 rounded-full hover:bg-primary/5 transition-colors">
+            Cửa Hàng
             <ArrowRight className="ml-2 h-4 w-4" />
-          </a>
+          </Link>
         </div>
       </div>
       
