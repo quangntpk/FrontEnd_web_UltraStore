@@ -81,9 +81,19 @@ const CartPage = () => {
         const processedComboItems = data.ctghComboView.map((combo: any) => ({
           ...combo,
           chiTietGioHangCombo: combo.chiTietGioHangCombo,
-          hinhAnh: combo.hinhAnh.startsWith("data:image")
+          hinhAnh: combo.hinhAnh?.startsWith("data:image")
             ? combo.hinhAnh
-            : `data:image/jpeg;base64,${combo.hinhAnh}`,
+            : combo.hinhAnh
+            ? `data:image/jpeg;base64,${combo.hinhAnh}`
+            : "/placeholder-image.jpg",
+          sanPhamList: combo.sanPhamList.map((item: any) => ({
+            ...item,
+            hinhAnh: item.hinhAnh?.startsWith("data:image")
+              ? item.hinhAnh
+              : item.hinhAnh
+              ? `data:image/jpeg;base64,${item.hinhAnh}`
+              : "/placeholder-image.jpg",
+          })),
         }));
         setComboItems(processedComboItems);
       } catch (error) {

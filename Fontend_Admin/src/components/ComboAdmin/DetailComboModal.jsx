@@ -181,23 +181,6 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 mt-6">
-              <button 
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center"
-                onClick={() => alert("Chức năng chỉnh sửa đang phát triển")}
-              >
-                <Edit className="mr-2 h-5 w-5" />
-                Chỉnh sửa
-              </button>
-              <button 
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center"
-                onClick={handleDelete}
-              >
-                <Trash className="mr-2 h-5 w-5" />
-                Xóa
-              </button>
-            </div>
           </div>
         </div>
       </div>

@@ -28,9 +28,9 @@ interface GiohangComboSupportProps {
 const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupportProps) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Các hàm xử lý logic (giữ nguyên)
   const handleRemoveVersion = async (version: number) => {
     onClose();
+
     const result = await Swal.fire({
       title: "Hãy xác nhận lại?",
       text: "Bạn có chắc chắn muốn xóa Combo này ra khỏi giỏ hàng không?",
@@ -91,7 +91,12 @@ const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupp
       acc[item.version].push(item);
       return acc;
     }, {} as Record<number, ComboItem["sanPhamList"]>);
-    return Object.entries(grouped);
+    
+    // Chuyển đổi object thành mảng các entries [version, items]
+    return Object.entries(grouped).map(([version, items]) => ({
+      version: parseInt(version),
+      items
+    }));
   };
 
   const parseProductCode = (maSanPham: string) => {
@@ -101,18 +106,14 @@ const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupp
     return { color, size };
   };
 
-  const chunkArray = (array: any[], size: number) => {
-    const result = [];
-    for (let i = 0; i < array.length; i += size) {
-      result.push(array.slice(i, i + size));
-    }
-    return result;
-  };
-
-  const groupedItems = groupByVersion(combo.sanPhamList);
+  // Lấy tất cả các phiên bản và sản phẩm của chúng
+  const groupedVersions = groupByVersion(combo.sanPhamList);
+  
+  // Số phiên bản hiển thị trên mỗi slide
   const itemsPerSlide = 2;
-  const chunkedItems = chunkArray(groupedItems, itemsPerSlide);
-  const totalSlides = chunkedItems.length;
+  
+  // Tính tổng số slide cần thiết
+  const totalSlides = Math.ceil(groupedVersions.length / itemsPerSlide);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % totalSlides);
@@ -122,112 +123,132 @@ const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupp
     setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
+  // Lấy ra các phiên bản cần hiển thị trên slide hiện tại
+  const getVisibleVersions = () => {
+    const startIndex = currentSlide * itemsPerSlide;
+    return groupedVersions.slice(startIndex, startIndex + itemsPerSlide);
+  };
+
+  // Debug để kiểm tra
+  console.log("Total versions:", groupedVersions.length);
+  console.log("Total slides:", totalSlides);
+  console.log("Current slide:", currentSlide);
+  console.log("Visible versions:", getVisibleVersions());
+
+  const currentVersions = getVisibleVersions();
+
   return (
-    <div className="p-4 bg-white rounded-lg shadow-lg w-full max-w-[1200px]"> {/* Thay p-6 và max-w-7xl */}
-      <h2 className="text-xl font-semibold mb-4">Edit {combo.tenCombo}</h2>
+    <div className="p-6 bg-white rounded-lg shadow-lg w-full max-w-7xl mx-auto" style={{width: "1200px"}}>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Edit {combo.tenCombo}</h2>
+        <Button variant="outline" size="sm" onClick={onClose}>
+          <X size={16} className="mr-2" /> Đóng
+        </Button>
+      </div>
 
       <div className="relative">
+        {/* Carousel container */}
         <div className="overflow-hidden">
-          <div
-            className="flex transition-transform duration-300 ease-in-out"
-            style={{
-              transform: `translateX(-${currentSlide * 100}%)`,
-              width: `${totalSlides * 100}%`,
-            }}
-          >
-            {chunkedItems.map((slideItems, slideIndex) => (
-              <div key={slideIndex} className="w-full flex flex-shrink-0">
-                {slideItems.map(([version, items], index) => (
-                  <div
-                    key={version}
-                    className="w-1/2 flex-shrink-0 p-3 bg-gray-100 rounded-md relative mx-1" /* Thay mx-2 */
-                    style={{ maxWidth: "450px" }} 
-                  >
-                    <button
-                      onClick={() => handleRemoveVersion(parseInt(version))}
-                      className="absolute top-2 right-2 text-red-500 hover:text-red-700 z-10"
-                    >
-                      <X size={16} />
-                    </button>
-                    <h4 className="font-medium mb-2">Combo {(slideIndex * itemsPerSlide) + index + 1}</h4>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {items.map((item, itemIndex) => {
-                        const { color, size } = parseProductCode(item.maSanPham);
-                        return (
-                          <div key={itemIndex} className="flex flex-col space-y-2">
-                            <div className="w-full h-[150px] bg-muted rounded-md overflow-hidden">
-                              <img
-                                src={
-                                  item.hinhAnh.startsWith("data:image")
-                                    ? item.hinhAnh
-                                    : `data:image/jpeg;base64,${item.hinhAnh}`
-                                }
-                                alt={item.maSanPham}
-                                className="w-full h-full object-cover"
+          <div className="grid grid-cols-2 gap-4">
+            {currentVersions.map((versionGroup, index) => (
+              <div
+                key={versionGroup.version}
+                className="bg-gray-100 rounded-md p-4 relative"
+              >
+                <button
+                  onClick={() => handleRemoveVersion(versionGroup.version)}
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-700 z-10"
+                >
+                  <X size={16} />
+                </button>
+                <h4 className="font-medium mb-2">
+                  Combo {currentSlide * itemsPerSlide + index + 1} (Version: {versionGroup.version})
+                </h4>
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                  {versionGroup.items.map((item, itemIndex) => {
+                    const { color, size } = parseProductCode(item.maSanPham);
+                    return (
+                      <div key={itemIndex} className="bg-white p-2 rounded-md shadow-sm">
+                        <div className="flex space-x-3">
+                          <div className="w-20 h-20 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                            <img
+                              src={
+                                item.hinhAnh.startsWith("data:image")
+                                  ? item.hinhAnh
+                                  : `data:image/jpeg;base64,${item.hinhAnh}`
+                              }
+                              alt={item.tenSanPham}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold truncate">{item.tenSanPham}</p>
+                            <div className="flex items-center mt-1">
+                              <span className="text-xs text-gray-500 mr-1">Màu:</span>
+                              <div
+                                className="w-4 h-4 rounded-sm border border-gray-300"
+                                style={{ backgroundColor: `#${color}` }}
                               />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold truncate">{item.tenSanPham}</p>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-muted-foreground text-xs">Màu Sắc:</span>
-                                <div
-                                  className="w-6 h-4 rounded-sm border border-gray-300"
-                                  style={{ backgroundColor: `#${color}` }}
-                                />
-                              </div>
-                              <p className="text-muted-foreground text-xs">Kích Thước: {size}</p>
-                              <p className="text-muted-foreground text-xs">
-                                Số Lượng: {item.soLuong}
-                              </p>
-                            </div>
+                            <p className="text-xs text-gray-500 mt-1">Kích Thước: {size}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Số Lượng: {item.soLuong}
+                            </p>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-                {slideItems.length < itemsPerSlide && (
-                  <div className="w-1/2 flex-shrink-0 p-3 mx-1"></div> /* Thay mx-2 */
-                )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ))}
+            {/* Nếu slide hiện tại chỉ có 1 phiên bản, thêm ô trống để giữ layout */}
+            {currentVersions.length === 1 && <div className="bg-transparent rounded-md"></div>}
           </div>
         </div>
 
+        {/* Nút điều hướng - chỉ hiển thị khi có nhiều hơn 1 slide */}
         {totalSlides > 1 && (
           <>
             <button
               onClick={prevSlide}
-              className="absolute left-0 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+              disabled={currentSlide === 0}
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={nextSlide}
-              className="absolute right-0 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+              disabled={currentSlide === totalSlides - 1}
             >
               <ChevronRight size={20} />
             </button>
           </>
         )}
 
+        {/* Dots indicator - chỉ hiển thị khi có nhiều hơn 1 slide */}
         {totalSlides > 1 && (
-          <div className="flex justify-center mt-4 space-x-2">
+          <div className="flex justify-center mt-6 space-x-2">
             {Array.from({ length: totalSlides }).map((_, index) => (
-              <div
+              <button
                 key={index}
-                className={`w-2 h-2 rounded-full ${
-                  index === currentSlide ? "bg-primary" : "bg-gray-300"
+                onClick={() => setCurrentSlide(index)}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  index === currentSlide ? "bg-blue-500" : "bg-gray-300"
                 }`}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
         )}
       </div>
 
-      <Button className="mt-6 w-full" variant="outline" onClick={onClose}>
-        Close
-      </Button>
+      <div className="text-center mt-6">
+        <Button variant="outline" onClick={onClose} className="px-8">
+          Đóng
+        </Button>
+      </div>
     </div>
   );
 };
