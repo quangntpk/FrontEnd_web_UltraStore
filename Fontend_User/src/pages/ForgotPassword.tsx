@@ -130,7 +130,7 @@ const ForgotPassword: React.FC = () => {
       setOtp('');
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(() => navigate('/login'), 3000); // Trì hoãn điều hướng 3 giây
+      setTimeout(() => navigate('/login'), 2000);
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra, vui lòng thử lại.';
       toast.error(errorMessage);

@@ -29,6 +29,21 @@ const Navigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Lắng nghe sự kiện storageChange để cập nhật trạng thái đăng nhập
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem("token");
+      setIsLoggedIn(!!token); // Cập nhật trạng thái đăng nhập
+    };
+
+    window.addEventListener("storageChange", handleStorageChange);
+
+    // Cleanup khi component unmount
+    return () => {
+      window.removeEventListener("storageChange", handleStorageChange);
+    };
+  }, []);
+
   const handleLogout = async () => {
     try {
       await axios.post(
@@ -45,6 +60,10 @@ const Navigation = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("user");
+
+    // Phát sự kiện storageChange khi đăng xuất
+    window.dispatchEvent(new Event("storageChange"));
+
     setIsLoggedIn(false);
     toast.success("Đăng xuất thành công 🎉\nBạn đã đăng xuất khỏi tài khoản.", {
       position: "top-right",
@@ -69,7 +88,7 @@ const Navigation = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8 rounded-none">
-          {navItems.map(item => (
+          {navItems.map((item) => (
             <Link
               key={item.name}
               to={item.path}
@@ -95,11 +114,6 @@ const Navigation = () => {
 
           {isLoggedIn ? (
             <>
-              <Link to="/profile">
-                <Button variant="outline" size="sm" className="hover-effect">
-                  <User className="mr-2 h-4 w-4" /> Tài khoản
-                </Button>
-              </Link>
               <Button
                 variant="ghost"
                 size="sm"
@@ -108,6 +122,11 @@ const Navigation = () => {
               >
                 <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
               </Button>
+              <Link to="/profile">
+                <Button variant="outline" size="sm" className="hover-effect">
+                  <User className="mr-2 h-4 w-4" /> Tài khoản
+                </Button>
+              </Link>
             </>
           ) : (
             <>
@@ -153,7 +172,9 @@ const Navigation = () => {
                 "transition-all duration-300 ease-out",
                 isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
               )}
-              style={{ transitionDelay: `${index * 50}ms` }}
+              style={{
+                transitionDelay: `${index * 50}ms`,
+              }}
               onClick={() => setIsOpen(false)}
             >
               {item.name}
@@ -169,7 +190,9 @@ const Navigation = () => {
                 "transition-all duration-300 ease-out",
                 isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
               )}
-              style={{ transitionDelay: `${navItems.length * 50}ms` }}
+              style={{
+                transitionDelay: `${navItems.length * 50}ms`,
+              }}
               onClick={() => setIsOpen(false)}
             >
               <Button variant="outline" className="w-full hover-effect">
@@ -183,30 +206,17 @@ const Navigation = () => {
                 "transition-all duration-300 ease-out",
                 isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
               )}
-              style={{ transitionDelay: `${navItems.length * 50 + 50}ms` }}
+              style={{
+                transitionDelay: `${navItems.length * 50 + 50}ms`,
+              }}
               onClick={() => setIsOpen(false)}
             >
               <Button variant="outline" className="w-full hover-effect">
                 <ClipboardList className="mr-2 h-4 w-4" /> Đơn hàng
               </Button>
             </Link>
-
             {isLoggedIn ? (
               <>
-                <Link
-                  to="/profile"
-                  className={cn(
-                    "w-full",
-                    "transition-all duration-300 ease-out",
-                    isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-                  )}
-                  style={{ transitionDelay: `${navItems.length * 50 + 100}ms` }}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Button variant="outline" className="w-full hover-effect">
-                    <User className="mr-2 h-4 w-4" /> Tài khoản
-                  </Button>
-                </Link>
                 <Button
                   variant="outline"
                   className={cn(
@@ -214,11 +224,32 @@ const Navigation = () => {
                     "transition-all duration-300 ease-out",
                     isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
                   )}
-                  style={{ transitionDelay: `${navItems.length * 50 + 150}ms` }}
-                  onClick={handleLogout}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 100}ms`,
+                  }}
+                  onClick={() => {
+                    handleLogout();
+                    setIsOpen(false);
+                  }}
                 >
                   <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
                 </Button>
+                <Link
+                  to="/profile"
+                  className={cn(
+                    "w-full",
+                    "transition-all duration-300 ease-out",
+                    isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                  )}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 150}ms`,
+                  }}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Button variant="outline" className="w-full hover-effect">
+                    <User className="mr-2 h-4 w-4" /> Tài khoản
+                  </Button>
+                </Link>
               </>
             ) : (
               <>
@@ -229,7 +260,9 @@ const Navigation = () => {
                     "transition-all duration-300 ease-out",
                     isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
                   )}
-                  style={{ transitionDelay: `${navItems.length * 50 + 100}ms` }}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 100}ms`,
+                  }}
                   onClick={() => setIsOpen(false)}
                 >
                   <Button variant="outline" className="w-full hover-effect">
@@ -243,7 +276,9 @@ const Navigation = () => {
                     "transition-all duration-300 ease-out",
                     isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
                   )}
-                  style={{ transitionDelay: `${navItems.length * 50 + 150}ms` }}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 150}ms`,
+                  }}
                   onClick={() => setIsOpen(false)}
                 >
                   <Button className="w-full gradient-bg hover-effect">
