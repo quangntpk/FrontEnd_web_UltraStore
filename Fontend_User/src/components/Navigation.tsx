@@ -1,48 +1,48 @@
-
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Menu, X, LogIn, UserPlus, User, ShoppingCart, ClipboardList, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { toast, ToastContent, ToastOptions } from "react-toastify";
+import { toast } from "react-toastify";
 import axios from "axios";
 
-  const navItems = [
-    {
-      name: "Products",
-      path: "/products"
-    }, 
-    {
-      name: "Features",
-      path: "#features"
-    }, 
-    {
-      name: "Pricing",
-      path: "#pricing"
-    }, 
-    {
-      name: "About",
-      path: "#about"
-    }, 
-    {
-      name: "Contact",
-      path: "#contact"
-    }
-  ];
+const navItems = [
+  { name: "Products", path: "/products" },
+  { name: "Features", path: "#features" },
+  { name: "Pricing", path: "#pricing" },
+  { name: "About", path: "#about" },
+  { name: "Contact", path: "#contact" },
+];
 
-  const Navigation = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [scrolled, setScrolled] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
-    const navigate = useNavigate();
-    useEffect(() => {
-      const handleScroll = () => {
-        setScrolled(window.scrollY > 10);
-      };
-      window.addEventListener("scroll", handleScroll);
-      return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
-  
+const Navigation = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const navigate = useNavigate();
+
+  // Lắng nghe sự kiện scroll để cập nhật giao diện
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Lắng nghe sự kiện storageChange để cập nhật trạng thái đăng nhập
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem("token");
+      setIsLoggedIn(!!token); // Cập nhật trạng thái đăng nhập
+    };
+
+    window.addEventListener("storageChange", handleStorageChange);
+
+    // Cleanup khi component unmount
+    return () => {
+      window.removeEventListener("storageChange", handleStorageChange);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -58,8 +58,12 @@ import axios from "axios";
     window.parent.postMessage({ type: "LOGOUT" }, "http://localhost:8080");
 
     localStorage.removeItem("token");
-    localStorage.removeItem("userId")
+    localStorage.removeItem("userId");
     localStorage.removeItem("user");
+
+    // Phát sự kiện storageChange khi đăng xuất
+    window.dispatchEvent(new Event("storageChange"));
+
     setIsLoggedIn(false);
     toast.success("Đăng xuất thành công 🎉\nBạn đã đăng xuất khỏi tài khoản.", {
       position: "top-right",
@@ -75,20 +79,26 @@ import axios from "axios";
     setIsOpen(false);
   };
 
-  return ( 
-  <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300", scrolled ? "glass py-3" : "py-5")}>
+  return (
+    <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300", scrolled ? "glass py-3" : "py-5")}>
       <div className="container px-6 mx-auto flex items-center justify-between bg-slate-50 rounded-xl">
         <Link to="/" className="relative z-10">
           <span className="text-xl font-medium tracking-tight gradient-text">Minimalist</span>
         </Link>
-        
+
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8 rounded-none">
-          {navItems.map(item => <Link key={item.name} to={item.path} className="text-sm hover-effect opacity-80 hover:opacity-100 relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.path}
+              className="text-sm hover-effect opacity-80 hover:opacity-100 relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
+            >
               {item.name}
-            </Link>)}
+            </Link>
+          ))}
         </nav>
-        
+
         {/* Auth Buttons - Desktop */}
         <div className="hidden md:flex items-center space-x-4">
           <Link to="/cart">
@@ -102,83 +112,180 @@ import axios from "axios";
             </Button>
           </Link>
           {isLoggedIn ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hover-effect"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
-            </Button>
-          ) : (
-            <Link to="/login">
-              <Button variant="ghost" size="sm" className="hover-effect">
-                <LogIn className="mr-2 h-4 w-4" /> Đăng nhập
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hover-effect"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
               </Button>
-            </Link>
+              <Link to="/profile">
+                <Button variant="outline" size="sm" className="hover-effect">
+                  <User className="mr-2 h-4 w-4" /> Tài khoản
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="hover-effect">
+                  <LogIn className="mr-2 h-4 w-4" /> Đăng nhập
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="gradient-bg hover-effect">
+                  <UserPlus className="mr-2 h-4 w-4" /> Đăng ký
+                </Button>
+              </Link>
+            </>
           )}
-          <Link to="/register">
-            <Button size="sm" className="gradient-bg hover-effect">
-              <UserPlus className="mr-2 h-4 w-4" /> Đăng ký
-            </Button>
-          </Link>
-          <Link to="/profile">
-            <Button variant="outline" size="sm" className="hover-effect">
-              <User className="mr-2 h-4 w-4" /> Tài khoản
-            </Button>
-          </Link>
         </div>
-        
+
         {/* Mobile Menu Button */}
-        <button className="md:hidden relative z-10 p-2 rounded-full hover:bg-primary/5 transition-colors" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu">
+        <button
+          className="md:hidden relative z-10 p-2 rounded-full hover:bg-primary/5 transition-colors"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle menu"
+        >
           {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-        
+
         {/* Mobile Menu */}
-        <div className={cn("fixed inset-0 bg-background bg-gradient-to-br from-white to-secondary/50", "flex flex-col items-center justify-center gap-8", "transition-all duration-500 ease-out", isOpen ? "opacity-100 visible" : "opacity-0 invisible")}>
-          {navItems.map((item, index) => <Link key={item.name} to={item.path} className={cn("text-2xl font-medium", "hover-effect opacity-80 hover:opacity-100", "transition-all duration-300 ease-out", isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0")} style={{
-          transitionDelay: `${index * 50}ms`
-        }} onClick={() => setIsOpen(false)}>
+        <div
+          className={cn(
+            "fixed inset-0 bg-background bg-gradient-to-br from-white to-secondary/50",
+            "flex flex-col items-center justify-center gap-8",
+            "transition-all duration-500 ease-out",
+            isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          )}
+        >
+          {navItems.map((item, index) => (
+            <Link
+              key={item.name}
+              to={item.path}
+              className={cn(
+                "text-2xl font-medium",
+                "hover-effect opacity-80 hover:opacity-100",
+                "transition-all duration-300 ease-out",
+                isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+              )}
+              style={{
+                transitionDelay: `${index * 50}ms`,
+              }}
+              onClick={() => setIsOpen(false)}
+            >
               {item.name}
-            </Link>)}
-          
+            </Link>
+          ))}
+
           {/* Auth Buttons - Mobile */}
           <div className="flex flex-col gap-4 mt-4 w-full max-w-xs">
-            <Link to="/cart" className={cn("w-full", "transition-all duration-300 ease-out", isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0")} style={{
-            transitionDelay: `${navItems.length * 50}ms`
-          }} onClick={() => setIsOpen(false)}>
+            <Link
+              to="/cart"
+              className={cn(
+                "w-full",
+                "transition-all duration-300 ease-out",
+                isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+              )}
+              style={{
+                transitionDelay: `${navItems.length * 50}ms`,
+              }}
+              onClick={() => setIsOpen(false)}
+            >
               <Button variant="outline" className="w-full hover-effect">
                 <ShoppingCart className="mr-2 h-4 w-4" /> Giỏ hàng
               </Button>
             </Link>
-            <Link to="/order-history" className={cn("w-full", "transition-all duration-300 ease-out", isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0")} style={{
-            transitionDelay: `${navItems.length * 50 + 50}ms`
-          }} onClick={() => setIsOpen(false)}>
+            <Link
+              to="/order-history"
+              className={cn(
+                "w-full",
+                "transition-all duration-300 ease-out",
+                isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+              )}
+              style={{
+                transitionDelay: `${navItems.length * 50 + 50}ms`,
+              }}
+              onClick={() => setIsOpen(false)}
+            >
               <Button variant="outline" className="w-full hover-effect">
                 <ClipboardList className="mr-2 h-4 w-4" /> Đơn hàng
               </Button>
             </Link>
-            <Link to="/login" className={cn("w-full", "transition-all duration-300 ease-out", isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0")} style={{
-            transitionDelay: `${navItems.length * 50 + 100}ms`
-          }} onClick={() => setIsOpen(false)}>
-              <Button variant="outline" className="w-full hover-effect">
-                <LogIn className="mr-2 h-4 w-4" /> Đăng nhập
-              </Button>
-            </Link>
-            <Link to="/register" className={cn("w-full", "transition-all duration-300 ease-out", isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0")} style={{
-            transitionDelay: `${(navItems.length + 1) * 50 + 100}ms`
-          }} onClick={() => setIsOpen(false)}>
-              <Button className="w-full gradient-bg hover-effect">
-                <UserPlus className="mr-2 h-4 w-4" /> Đăng ký
-              </Button>
-            </Link>
-            <Link to="/profile" className={cn("w-full", "transition-all duration-300 ease-out", isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0")} style={{
-            transitionDelay: `${(navItems.length + 2) * 50 + 100}ms`
-          }} onClick={() => setIsOpen(false)}>
-              <Button variant="outline" className="w-full hover-effect">
-                <User className="mr-2 h-4 w-4" /> Tài khoản
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full hover-effect",
+                    "transition-all duration-300 ease-out",
+                    isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                  )}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 100}ms`,
+                  }}
+                  onClick={() => {
+                    handleLogout();
+                    setIsOpen(false);
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
+                </Button>
+                <Link
+                  to="/profile"
+                  className={cn(
+                    "w-full",
+                    "transition-all duration-300 ease-out",
+                    isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                  )}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 150}ms`,
+                  }}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Button variant="outline" className="w-full hover-effect">
+                    <User className="mr-2 h-4 w-4" /> Tài khoản
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className={cn(
+                    "w-full",
+                    "transition-all duration-300 ease-out",
+                    isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                  )}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 100}ms`,
+                  }}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Button variant="outline" className="w-full hover-effect">
+                    <LogIn className="mr-2 h-4 w-4" /> Đăng nhập
+                  </Button>
+                </Link>
+                <Link
+                  to="/register"
+                  className={cn(
+                    "w-full",
+                    "transition-all duration-300 ease-out",
+                    isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                  )}
+                  style={{
+                    transitionDelay: `${navItems.length * 50 + 150}ms`,
+                  }}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Button className="w-full gradient-bg hover-effect">
+                    <UserPlus className="mr-2 h-4 w-4" /> Đăng ký
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

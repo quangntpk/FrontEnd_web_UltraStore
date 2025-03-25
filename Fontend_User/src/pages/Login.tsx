@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, redirect, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +15,11 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast, dismiss } = useToast();
-  const navigate = useNavigate();;
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Xử lý đăng nhập với API
-  const handleLogin = async (e: React.FormEvent) => {
+  // Xử lý đăng nhập bằng tài khoản/mật khẩu
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -29,14 +29,18 @@ const Login = () => {
         matKhau: password,
       });
 
-    const { message, user, token, redirectUrl } = response.data;
+      const { message, user, token, redirectUrl } = response.data;
 
-    if (user && user.maNguoiDung) {
-      localStorage.setItem("userId", user.maNguoiDung);
-      localStorage.setItem("token", token);
-      localStorage.setItem("user",JSON.stringify(user));
-    }
-      const toastId = toast({
+      if (user && user.maNguoiDung) {
+        localStorage.setItem("userId", user.maNguoiDung);
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        // Phát sự kiện tùy chỉnh để thông báo rằng localStorage đã thay đổi
+        window.dispatchEvent(new Event("storageChange"));
+      }
+
+      toast({
         title: "Đăng nhập thành công 🎉",
         description: message || "Chào mừng bạn quay trở lại!",
         duration: 3000,
@@ -50,15 +54,14 @@ const Login = () => {
           </Button>
         ),
       });
+
       if (redirectUrl && redirectUrl !== window.location.origin) {
-        // Chuyển hướng sang admin app với token trong query string
         window.location.href = `${redirectUrl}?token=${token}`;
       } else {
-        // Ở lại ứng dụng user và điều hướng nội bộ
         navigate("/");
       }
     } catch (error) {
-      const toastId = toast({
+      toast({
         variant: "destructive",
         title: "Đăng nhập thất bại ⚠️",
         description: error.response?.data?.message || "Vui lòng kiểm tra lại thông tin.",
@@ -77,6 +80,41 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  // Xử lý đăng nhập với Google
+  const handleGoogleLogin = async () => {
+    try {
+      const response = await axios.get("http://localhost:5261/api/XacThuc/google-login", {
+        params: {
+          returnUrl: "/api/XacThuc/google-callback",
+        },
+      });
+      const { loginUrl } = response.data;
+
+      if (!loginUrl) {
+        throw new Error("Không thể lấy URL đăng nhập Google");
+      }
+
+      window.location.href = loginUrl;
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Đăng nhập Google thất bại ⚠️",
+        description: error.message || "Đã có lỗi xảy ra khi đăng nhập với Google.",
+        duration: 3000,
+        className: "bg-red-500 text-white border border-red-700 shadow-lg",
+        action: (
+          <Button
+            variant="outline"
+            className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+          >
+            Đóng
+          </Button>
+        ),
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
@@ -163,7 +201,12 @@ const Login = () => {
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button variant="outline" type="button" className="hover-effect">
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="hover-effect"
+                  onClick={handleGoogleLogin}
+                >
                   <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
