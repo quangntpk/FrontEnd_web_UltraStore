@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShoppingCart, Trash2, Plus, Minus, CreditCard } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
@@ -11,7 +11,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import GiohangComboSupport from "@/components/GioHangComboSupport";
 import Swal from "sweetalert2";
 
-// Product type based on ctghSanPhamView with hinhAnh
 interface CartItem {
   idSanPham: string;
   tenSanPham: string;
@@ -22,7 +21,6 @@ interface CartItem {
   hinhAnh: string;
 }
 
-// Combo type based on ctghComboView with hinhAnh and gia
 interface ComboItem {
   idCombo: number;
   tenCombo: string;
@@ -39,7 +37,6 @@ interface ComboItem {
   gia: number;
 }
 
-// Checkout form type
 interface CheckoutForm {
   fullName: string;
   email: string;
@@ -53,12 +50,14 @@ interface CheckoutForm {
 }
 
 const CartPage = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [comboItems, setComboItems] = useState<ComboItem[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState<ComboItem | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
 
   const formatCurrency = (amount: number) => {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -66,8 +65,26 @@ const CartPage = () => {
 
   useEffect(() => {
     const fetchCartData = async () => {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        Swal.fire({
+          title: "Vui lòng đăng nhập!",
+          text: "Bạn cần đăng nhập để xem giỏ hàng.",
+          icon: "warning",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        }).then(() => {
+          navigate("/login");
+        });
+        return;
+      }
+
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`http://localhost:5261/api/Cart/CopyGioHang?id=${userId}`)}&size=200x200`;
+      setQrCodeUrl(qrUrl);
+
       try {
-        const response = await fetch("http://localhost:5261/api/Cart/GioHangByKhachHang?id=KH001");
+        const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userId}`);
         const data = await response.json();
 
         const processedCartItems = data.ctghSanPhamView.map((item: any) => ({
@@ -102,11 +119,26 @@ const CartPage = () => {
       }
     };
     fetchCartData();
-  }, []);
+  }, [navigate]);
 
   const handleQuantityChange = async (idSanPham: string, change: number) => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      Swal.fire({
+        title: "Vui lòng đăng nhập!",
+        text: "Bạn cần đăng nhập để thay đổi số lượng.",
+        icon: "warning",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      }).then(() => {
+        navigate("/login");
+      });
+      return;
+    }
+
     const info = {
-      MaKhachHang: "KH001",
+      MaKhachHang: userId,
       IDSanPham: idSanPham,
       IDCombo: null,
     };
@@ -144,6 +176,21 @@ const CartPage = () => {
   };
 
   const handleRemoveItem = async (idSanPham: string) => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      Swal.fire({
+        title: "Vui lòng đăng nhập!",
+        text: "Bạn cần đăng nhập để xóa sản phẩm.",
+        icon: "warning",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      }).then(() => {
+        navigate("/login");
+      });
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Bạn có chắc không?",
       text: "Bạn có muốn xóa sản phẩm này khỏi giỏ hàng?",
@@ -155,11 +202,10 @@ const CartPage = () => {
 
     if (result.isConfirmed) {
       const info = {
-        MaKhachHang: "KH001",
+        MaKhachHang: userId,
         IDSanPham: idSanPham,
         IDCombo: null,
       };
-      console.log(info)
       try {
         await fetch("http://localhost:5261/api/Cart/XoaSanPham", {
           method: "DELETE",
@@ -179,6 +225,21 @@ const CartPage = () => {
   };
 
   const handleRemoveCombo = async (idCombo: number) => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      Swal.fire({
+        title: "Vui lòng đăng nhập!",
+        text: "Bạn cần đăng nhập để xóa combo.",
+        icon: "warning",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      }).then(() => {
+        navigate("/login");
+      });
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Bạn có chắc không?",
       text: "Bạn có muốn xóa combo này khỏi giỏ hàng?",
@@ -187,14 +248,14 @@ const CartPage = () => {
       confirmButtonText: "Có, xóa nó!",
       cancelButtonText: "Không, giữ lại",
     });
-  
+
     if (result.isConfirmed) {
       const info = {
-        MaKhachHang: "KH001", 
+        MaKhachHang: userId,
         IDSanPham: null,
         IDCombo: idCombo,
       };
-  
+
       try {
         await fetch("http://localhost:5261/api/Cart/XoaCombo", {
           method: "DELETE",
@@ -203,7 +264,7 @@ const CartPage = () => {
           },
           body: JSON.stringify(info),
         });
-  
+
         setComboItems((prevItems) => prevItems.filter((item) => item.idCombo !== idCombo));
         toast.success("Đã xóa combo khỏi giỏ hàng");
       } catch (error) {
@@ -265,6 +326,21 @@ const CartPage = () => {
   const handleSubmitCheckout = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      Swal.fire({
+        title: "Vui lòng đăng nhập!",
+        text: "Bạn cần đăng nhập để thanh toán.",
+        icon: "warning",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      }).then(() => {
+        navigate("/login");
+      });
+      return;
+    }
+
     const requiredFields = [
       "fullName",
       "email",
@@ -302,7 +378,6 @@ const CartPage = () => {
               {!showCheckout ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2">
-                    {/* Products Section */}
                     {cartItems.map((item) => (
                       <div
                         key={item.idSanPham}
@@ -348,7 +423,6 @@ const CartPage = () => {
                       </div>
                     ))}
 
-                    {/* Combos Section */}
                     {comboItems.map((combo) => (
                       <div
                         key={combo.idCombo}
@@ -433,6 +507,20 @@ const CartPage = () => {
                       >
                         Quay về trang Sản Phẩm
                       </Link>
+
+                      {/* QR Code Section */}
+                      {qrCodeUrl && (
+                        <div className="mt-6">
+                          <h3 className="text-lg font-medium mb-2 text-center">
+                            Chia sẻ mã QR này để cho bạn bè Copy giỏ hàng của bạn
+                          </h3>
+                          <img
+                            src={qrCodeUrl}
+                            alt="QR Code"
+                            className="w-48 h-48 mx-auto"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -641,6 +729,7 @@ const CartPage = () => {
           <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
             {selectedCombo && (
               <GiohangComboSupport
+
                 combo={selectedCombo}
                 onClose={() => setSelectedCombo(null)}
                 onUpdateCombo={handleUpdateCombo}

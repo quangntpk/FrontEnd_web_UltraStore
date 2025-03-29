@@ -46,6 +46,8 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  //  State cho yêu thích
   const [isLiked, setIsLiked] = useState(false);
   const [likedId, setLikedId] = useState(null);
   const [notification, setNotification] = useState(null);
@@ -100,6 +102,9 @@ const ProductDetail = () => {
         });
 
         // Fetch comments với số lượng tim
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`/products/${productId}`)}&size=100x100`;
+  setQrCodeUrl(qrUrl);
+        // Fetch comments
         const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Failed to fetch comments");
         const commentData = await commentResponse.json();
@@ -222,6 +227,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     const userId = localStorage.getItem("userId");
+
     if (!userId) {
       Swal.fire({
         title: "Vui lòng đăng nhập!",
@@ -241,14 +247,20 @@ const ProductDetail = () => {
 
     const userData = JSON.parse(localStorage.getItem("user"));
     const maNguoiDung = userData?.maNguoiDung;
+    const selectedProduct = products[selectedColorIndex];
+    const selectedSize = selectedProduct.sizes[selectedSizeIndex];
 
     if (!maNguoiDung) {
       showNotification("Vui lòng đăng nhập trước khi thêm vào giỏ hàng!", "error");
       return;
     }
 
-    const selectedProduct = products[selectedColorIndex];
-    const selectedSize = selectedProduct.sizes[selectedSizeIndex];
+    // Validate số lượng
+    if (quantity > selectedSize.quantity) {
+      showNotification(`Số lượng vượt quá tồn kho! Chỉ còn ${selectedSize.quantity} sản phẩm.`, "error");
+      return;
+    }
+
     const cartData = {
       IDNguoiDung: maNguoiDung,
       IDSanPham: productId.split('_')[0] || productId,
@@ -420,6 +432,7 @@ const ProductDetail = () => {
   const availableSizes = getSizesForColor();
   const selectedPrice = selectedSizeIndex !== null ? currentProduct.sizes[selectedSizeIndex].price : currentProduct.price;
   const currentUserId = JSON.parse(localStorage.getItem("user"))?.maNguoiDung;
+  const stockQuantity = selectedSizeIndex !== null ? availableSizes[selectedSizeIndex].quantity : availableSizes[0].quantity;
 
   return (
     <>
@@ -444,6 +457,7 @@ const ProductDetail = () => {
                   </button>
                 ))}
               </div>
+              
             </div>
             <div className="flex flex-col space-y-6">
               <div>
@@ -504,6 +518,9 @@ const ProductDetail = () => {
                     +
                   </button>
                 </div>
+                <span className="text-xs text-muted-foreground mt-2 block">
+                  Số Lượng Sản phẩm còn lại trong kho: {stockQuantity}
+                </span>
               </div>
               <div>
                 <h3 className="text-sm font-medium mb-3">Thông Tin Sản Phẩm</h3>
@@ -520,6 +537,20 @@ const ProductDetail = () => {
                 <button onClick={handleToggleLike} className="h-12 w-12 border border-primary/30 rounded-full hover:bg-primary/5 transition-colors flex items-center justify-center">
                   <Heart className={cn("h-5 w-5", isLiked ? "fill-red-500 text-red-500" : "text-gray-400")} />
                 </button>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+              {qrCodeUrl && (
+                <div className="mt-6 flex items-center space-x-4">
+                  <h3 className="text-lg font-medium">
+                    Xem trên điện thoại :
+                  </h3>
+                  <img
+                    src={qrCodeUrl}
+                    alt="QR Code"
+                    className="w-20 h-20"
+                  />
+                </div>
+              )}
               </div>
             </div>
           </div>

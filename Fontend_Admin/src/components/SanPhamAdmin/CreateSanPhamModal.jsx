@@ -181,9 +181,8 @@ hasError = true;
             timerProgressBar: true,
             showConfirmButton: false,
           }).then(() => {
-            setIsAddModalOpen(false);
-            if (props.onSuccess) props.onSuccess(); 
             window.location.reload();
+            setIsAddModalOpen(false);          
           });
         } else {
           Swal.fire({

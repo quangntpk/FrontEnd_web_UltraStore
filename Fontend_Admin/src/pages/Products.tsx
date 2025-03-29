@@ -408,7 +408,7 @@ const Products = () => {
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-purple">
-                      {(product.donGia / 1000)?.toFixed(1) || "0"}K VND
+                      {(product.donGia / 1000)?.toFixed(3) || "0"} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {product.soLuong || 0} in stock

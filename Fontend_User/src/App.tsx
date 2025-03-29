@@ -22,7 +22,7 @@ import Message from "./pages/Message";
 import Inpaint from "./pages/Inpaint";
 import ComboDetail from "./pages/ComboDetail";
 import SupportChat from "./components/SupportChat"; // Import component SupportChat
-
+import ComboListing from "./pages/ComboListing";
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -130,6 +130,7 @@ const App = () => (
           <Route path="/inpaint" element={<Inpaint />} />
           <Route path="/message" element={<Message />} />
           <Route path="/inpaint" element={<Inpaint />} />
+          <Route path="/combo" element={<ComboListing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />

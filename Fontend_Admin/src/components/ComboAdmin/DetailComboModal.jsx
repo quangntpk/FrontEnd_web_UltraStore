@@ -62,7 +62,17 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
         if (!response.ok) {
           throw new Error("Failed to delete combo");
         }
-        alert("Xóa combo thành công!");
+         Swal.fire({
+                title: "Thành công!",
+                text: "Xóa combo thành công!",
+                icon: "success",
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+              }).then(() => {
+                setIsCreateModalOpen(false);
+                window.location.reload();
+              });
         onClose();
       } catch (err) {
         console.error("Error deleting combo:", err);

@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import CryptoJS from 'crypto-js';
 import { toByteArray } from 'base64-js';
+import { cn } from "@/lib/utils"; // Giả sử bạn có utility này
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -48,6 +49,7 @@ declare global {
 }
 
 const SupportChat: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState<string>('');
   const [history, setHistory] = useState<{ question: string; result: string }[]>([]);
   const [isListening, setIsListening] = useState(false);
@@ -55,7 +57,6 @@ const SupportChat: React.FC = () => {
 
   const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const websocketRef = useRef<WebSocket | null>(null);
-  const audioQueueRef = useRef<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isListeningRef = useRef(isListening);
   const { toast } = useToast();
@@ -68,46 +69,38 @@ const SupportChat: React.FC = () => {
   }, [isListening]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognitionConstructor) {
-        const recognition = new SpeechRecognitionConstructor() as SpeechRecognition;
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'vi-VN';
+    const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionConstructor) {
+      const recognition = new SpeechRecognitionConstructor() as SpeechRecognition;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'vi-VN';
 
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map(result => result[0])
-            .map(result => result.transcript)
-            .join('');
-          setQuestion(transcript);
-        };
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0])
+          .map(result => result.transcript)
+          .join('');
+        setQuestion(transcript);
+      };
 
-        recognition.onerror = (event) => {
-          console.error('Speech recognition error', event.error);
-          toast({
-            title: "Lỗi nhận diện giọng nói",
-            description: `Không thể nhận diện giọng nói: ${event.error}`,
-            variant: "destructive",
-          });
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          if (isListeningRef.current) {
-            recognition.start();
-          }
-        };
-
-        speechRecognitionRef.current = recognition;
-      } else {
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
         toast({
-          title: "Không hỗ trợ",
-          description: "Trình duyệt của bạn không hỗ trợ nhận diện giọng nói",
+          title: "Lỗi nhận diện giọng nói",
+          description: `Không thể nhận diện giọng nói: ${event.error}`,
           variant: "destructive",
         });
-      }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        if (isListeningRef.current) {
+          recognition.start();
+        }
+      };
+
+      speechRecognitionRef.current = recognition;
     }
 
     return () => {
@@ -198,11 +191,9 @@ const SupportChat: React.FC = () => {
     const signature = CryptoJS.enc.Base64.stringify(signatureSha);
     const authorizationOrigin = `api_key="${apiKey}",algorithm="hmac-sha256",headers="host date request-line",signature="${signature}"`;
     const authorization = btoa(authorizationOrigin);
-    const url = `${hostUrl}?host=${encodeURIComponent(host)}&date=${encodeURIComponent(date)}&authorization=${encodeURIComponent(authorization)}`;
-    return url;
+    return `${hostUrl}?host=${encodeURIComponent(host)}&date=${encodeURIComponent(date)}&authorization=${encodeURIComponent(authorization)}`;
   };
 
-  // Helper function to encode UTF-8 string to base64
   const encodeTextToBase64 = (text: string): string => {
     const encoder = new TextEncoder();
     const utf8Bytes = encoder.encode(text);
@@ -219,16 +210,16 @@ const SupportChat: React.FC = () => {
       });
       return;
     }
-  
+
     const wsUrl = assembleAuthUrl('wss://tts-api-sg.xf-yun.com/v2/tts', API_KEY, API_SECRET);
     websocketRef.current = new WebSocket(wsUrl);
-  
+
     websocketRef.current.onopen = () => {
       const requestData = {
         common: { app_id: "ga62eb2a" },
         business: {
           vcn: "xiaoyun",
-          aue: "lame", // Changed from "mp3" to "lame"
+          aue: "lame",
           speed: 50,
           volume: 50,
           pitch: 50,
@@ -239,17 +230,15 @@ const SupportChat: React.FC = () => {
           text: encodeTextToBase64(text),
         },
       };
-      console.log('Request:', requestData);
       websocketRef.current?.send(JSON.stringify(requestData));
       setIsSpeaking(true);
     };
-  
+
     websocketRef.current.onmessage = (event) => {
       const response = JSON.parse(event.data);
-      console.log('Response:', response);
       if (response.code === 0 && response.data.audio) {
         const audioData = toByteArray(response.data.audio);
-        const blob = new Blob([audioData], { type: 'audio/mp3' }); // Still MP3, as "lame" outputs MP3
+        const blob = new Blob([audioData], { type: 'audio/mp3' });
         const url = URL.createObjectURL(blob);
         audioRef.current = new Audio(url);
         audioRef.current.onended = () => setIsSpeaking(false);
@@ -263,9 +252,8 @@ const SupportChat: React.FC = () => {
         setIsSpeaking(false);
       }
     };
-  
-    websocketRef.current.onerror = (err) => {
-      console.error('WebSocket Error:', err);
+
+    websocketRef.current.onerror = () => {
       toast({
         title: "Lỗi kết nối",
         description: "Không thể kết nối đến iFLYTEK TTS",
@@ -274,6 +262,7 @@ const SupportChat: React.FC = () => {
       setIsSpeaking(false);
     };
   };
+
   const stopSpeaking = () => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -283,74 +272,105 @@ const SupportChat: React.FC = () => {
       websocketRef.current.close();
     }
     setIsSpeaking(false);
-    audioQueueRef.current = [];
   };
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 bg-white dark:bg-gray-800 border-2 border-[#E8A8FF] rounded-lg shadow-lg overflow-hidden">
-      <div className="p-3 bg-[#E8A8FF] text-black flex justify-between items-center">
-        <h2 className="text-base font-medium">Support Chat</h2>
-      </div>
-
-      <div className="h-64 overflow-y-auto p-3 space-y-4 bg-white">
-        {history.length === 0 ? (
-          <div className="text-center text-muted-foreground p-4">
-            Chưa có tin nhắn nào. Hãy đặt câu hỏi!
-          </div>
-        ) : (
-          history.map((msg, index) => (
-            <div key={index} className="space-y-2">
-              <div className="bg-secondary/50 p-2 rounded-lg">
-                <p className="text-sm">
-                  <span className="font-semibold">Bạn:</span> {msg.question}
-                </p>
-              </div>
-              <div className="bg-primary/10 p-2 rounded-lg flex justify-between items-center">
-                <p className="text-sm flex-1">
-                  <span className="font-semibold">Support:</span> {msg.result}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-2 h-6 w-6 shrink-0 text-[#E8A8FF]"
-                  onClick={() => (isSpeaking ? stopSpeaking() : speakText(msg.result))}
-                >
-                  {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          ))
+    <>
+      {/* Nút mũi tên */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50",
+          "bg-[#E8A8FF] hover:bg-[#d98eff] text-black rounded-full p-3 shadow-lg",
+          "transition-all duration-300"
         )}
-      </div>
+      >
+        {isOpen ? (
+          <ChevronDown className="w-6 h-6" />
+        ) : (
+          <ChevronUp className="w-6 h-6" />
+        )}
+      </button>
 
-      <form onSubmit={handleSubmit} className="p-3 border-t flex items-center gap-2">
-        <div className="relative flex-1">
-          <Input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Nhập câu hỏi của bạn"
-            className="pr-8"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-0 h-full text-[#E8A8FF]"
-            onClick={toggleListening}
-          >
-            {isListening ? (
-              <MicOff className="h-4 w-4 text-destructive" />
+      {/* Hộp thoại chat */}
+      {isOpen && (
+        <div
+          className={cn(
+            "fixed bottom-16 left-1/2 transform -translate-x-1/2 w-96",
+            "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-[#E8A8FF]",
+            "flex flex-col h-[400px] z-50"
+          )}
+        >
+          {/* Header */}
+          <div className="p-3 bg-[#E8A8FF] text-black rounded-t-lg flex items-center gap-2">
+            <h3 className="font-semibold">Hỗ trợ Tự Động</h3>
+          </div>
+
+          {/* Nội dung chat */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-white dark:bg-gray-800">
+            {history.length === 0 ? (
+              <div className="text-center text-muted-foreground p-4">
+                Chưa có tin nhắn nào. Hãy đặt câu hỏi!
+              </div>
             ) : (
-              <Mic className="h-4 w-4" />
+              history.map((msg, index) => (
+                <div key={index} className="space-y-2">
+                  {/* Tin nhắn người dùng (bên phải) */}
+                  <div className="flex justify-end">
+                    <div className="bg-[#E8A8FF] text-black p-2 rounded-lg max-w-[70%]">
+                      <p className="text-sm">{msg.question}</p>
+                    </div>
+                  </div>
+                  {/* Tin nhắn AI (bên trái) */}
+                  <div className="flex justify-start items-center gap-2">
+                    <div className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-[70%]">
+                      <p className="text-sm">{msg.result}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0 text-[#E8A8FF]"
+                      onClick={() => (isSpeaking ? stopSpeaking() : speakText(msg.result))}
+                    >
+                      {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              ))
             )}
-          </Button>
+          </div>
+
+          {/* Input */}
+          <form onSubmit={handleSubmit} className="p-3 border-t flex items-center gap-2 bg-white dark:bg-gray-800">
+            <div className="relative flex-1">
+              <Input
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Nhập câu hỏi của bạn"
+                className="pr-8 dark:bg-gray-700 dark:text-white"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full text-[#E8A8FF]"
+                onClick={toggleListening}
+              >
+                {isListening ? (
+                  <MicOff className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <Button type="submit" className="bg-[#E8A8FF] text-black hover:bg-[#d98eff]">
+              Gửi
+            </Button>
+          </form>
         </div>
-        <Button type="submit" className="bg-[#E8A8FF] text-black">
-          Gửi
-        </Button>
-      </form>
-    </div>
+      )}
+    </>
   );
 };
 
