@@ -11,29 +11,44 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
-// Cập nhật interface Product
-interface Product {
-  id: string;
+// Định nghĩa interface cho Combo
+interface ComboProduct {
+  idSanPham: string;
   name: string;
-  description: string;
-  imageSrc: string;
-  colorClass: string;
-  price: number;
-  category: string;
-  thuongHieu: string; // Thêm Thương Hiệu
-  chatLieu: string;   // Thêm Chất Liệu
+  thuongHieu: string;
+  loaiSanPham: string;
+  kichThuoc: string[];
+  soLuong: number;
+  donGia: number;
+  moTa: string | null;
+  chatLieu: string;
+  mauSac: string[];
+  hinh: string[];
+  ngayTao: string;
+  trangThai: number;
 }
 
-const ProductListing = () => {
-  const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
+interface Combo {
+  maCombo: number;
+  name: string;
+  hinhAnh: string;
+  ngayTao: string;
+  trangThai: number;
+  sanPhams: ComboProduct[];
+  moTa: string;
+  gia: number;
+  soLuong: number;
+}
+
+const ComboListing = () => {
+  const [originalCombos, setOriginalCombos] = useState<Combo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("featured");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [filteredCombos, setFilteredCombos] = useState<Combo[]>([]);
 
   const formatter = new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -41,65 +56,76 @@ const ProductListing = () => {
   });
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchCombos = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("http://localhost:5261/api/SanPham/ListSanPham");
+        const response = await fetch("http://localhost:5261/api/Combo/ComboSanPhamView");
         if (!response.ok) {
-          throw new Error("Không thể tải danh sách sản phẩm");
+          throw new Error("Không thể tải danh sách combo");
         }
         const data = await response.json();
 
-        const mappedProducts = data.map((product: any) => ({
-          id: product.id,
-          name: product.name,
-          description: product.moTa || "Không có mô tả",
-          imageSrc: `data:image/jpeg;base64,${product.hinh[0]}`,
-          colorClass: "from-blue-500 to-cyan-500",
-          price: product.donGia,
-          category: product.loaiSanPham,
-          thuongHieu: product.thuongHieu || "Không xác định",
-          chatLieu: product.chatLieu || "Không xác định",
+        const mappedCombos = data.map((combo: any) => ({
+          maCombo: combo.maCombo,
+          name: combo.name,
+          hinhAnh: `data:image/jpeg;base64,${combo.hinhAnh}`,
+          ngayTao: combo.ngayTao,
+          trangThai: combo.trangThai,
+          sanPhams: combo.sanPhams.map((product: any) => ({
+            idSanPham: product.idSanPham,
+            name: product.name,
+            thuongHieu: product.thuongHieu,
+            loaiSanPham: product.loaiSanPham,
+            kichThuoc: product.kichThuoc,
+            soLuong: product.soLuong,
+            donGia: product.donGia,
+            moTa: product.moTa || "Không có mô tả",
+            chatLieu: product.chatLieu,
+            mauSac: product.mauSac,
+            hinh: product.hinh.map((img: string) => `data:image/jpeg;base64,${img}`),
+            ngayTao: product.ngayTao,
+            trangThai: product.trangThai,
+          })),
+          moTa: combo.moTa || "Không có mô tả",
+          gia: combo.gia,
+          soLuong: combo.soLuong,
         }));
 
-        setOriginalProducts(mappedProducts);
+        setOriginalCombos(mappedCombos);
         setError(null);
       } catch (err) {
-        console.error("Lỗi khi lấy sản phẩm:", err);
-        setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
-        toast.error("Không thể tải sản phẩm");
+        console.error("Lỗi khi lấy combo:", err);
+        setError("Không thể tải combo. Vui lòng thử lại sau.");
+        toast.error("Không thể tải combo");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchCombos();
   }, []);
 
   useEffect(() => {
-    let result = [...originalProducts];
+    let result = [...originalCombos];
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        (product) =>
-          product.name.toLowerCase().includes(query) ||
-          product.description.toLowerCase().includes(query)
+        (combo) =>
+          combo.name.toLowerCase().includes(query) ||
+          combo.moTa.toLowerCase().includes(query)
       );
-    }
-    if (selectedCategories.length > 0) {
-      result = result.filter((product) => selectedCategories.includes(product.category));
     }
     if (priceRange) {
       result = result.filter(
-        (product) => product.price >= priceRange.min && product.price <= priceRange.max
+        (combo) => combo.gia >= priceRange.min && combo.gia <= priceRange.max
       );
     }
     switch (sortOrder) {
       case "price-asc":
-        result.sort((a, b) => a.price - b.price);
+        result.sort((a, b) => a.gia - b.gia);
         break;
       case "price-desc":
-        result.sort((a, b) => b.price - a.price);
+        result.sort((a, b) => b.gia - a.gia);
         break;
       case "name-asc":
         result.sort((a, b) => a.name.localeCompare(b.name));
@@ -110,14 +136,8 @@ const ProductListing = () => {
       default:
         break;
     }
-    setFilteredProducts(result);
-  }, [originalProducts, searchQuery, sortOrder, selectedCategories, priceRange]);
-
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-    );
-  };
+    setFilteredCombos(result);
+  }, [originalCombos, searchQuery, sortOrder, priceRange]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,16 +147,13 @@ const ProductListing = () => {
   const clearFilters = () => {
     setSearchQuery("");
     setSortOrder("featured");
-    setSelectedCategories([]);
     setPriceRange(null);
     toast.success("Đã xóa tất cả bộ lọc");
   };
 
-  const addToCart = (product: Product) => {
-    toast.success(`${product.name} đã được thêm vào giỏ hàng!`);
+  const addToCart = (combo: Combo) => {
+    toast.success(`${combo.name} đã được thêm vào giỏ hàng!`);
   };
-
-  const categories = [...new Set(originalProducts.map((product) => product.category))];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -145,13 +162,13 @@ const ProductListing = () => {
         <div className="container px-4 md:px-6 mx-auto max-w-7xl">
           <div className="flex flex-col gap-6 my-[50px]">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <h1 className="text-3xl font-bold gradient-text">Tất Cả Sản Phẩm</h1>
+              <h1 className="text-3xl font-bold gradient-text">Tất Cả Combo</h1>
               <form onSubmit={handleSearch} className="flex w-full md:w-auto">
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Tìm kiếm sản phẩm..."
+                    placeholder="Tìm kiếm combo..."
                     className="pl-8 w-full"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -174,27 +191,7 @@ const ProductListing = () => {
 
             {showFilters && (
               <div className="bg-white p-6 rounded-xl shadow-sm animate-fade-in">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <Label className="text-lg font-medium mb-3 block">Danh Mục</Label>
-                    <div className="space-y-2">
-                      {categories.map((category) => (
-                        <div key={category} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`category-${category}`}
-                            checked={selectedCategories.includes(category)}
-                            onCheckedChange={() => handleCategoryChange(category)}
-                          />
-                          <label
-                            htmlFor={`category-${category}`}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {category}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label className="text-lg font-medium mb-3 block">Khoảng Giá</Label>
                     <Select
@@ -258,62 +255,62 @@ const ProductListing = () => {
                 <div className="col-span-full py-12 text-center text-red-500">{error}</div>
               ) : isLoading ? (
                 <div className="col-span-full py-12 text-center">
-                  <p>Đang tải sản phẩm...</p>
+                  <p>Đang tải combo...</p>
                 </div>
-              ) : filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <Link
-                          to={`/product/${product.id}`}>
-                                       <div
-                    key={product.id}
-                    className="rounded-2xl overflow-hidden border border-border colorful-card h-full flex flex-col"
-                  >
-                    <div
-                      className={`aspect-video overflow-hidden bg-gradient-to-r ${product.colorClass}`}
-                    >
-                      <img
-                        src={product.imageSrc}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 "
-                      />
-                    </div>
-                      <div className="p-6 flex flex-col flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="text-xl font-medium">{product.name}</h3>
-                            <div className="flex gap-2 mt-1">
-                              <Badge variant="outline" className="bg-secondary text-muted-foreground border-0">
-                                <Tag className="h-3 w-3 mr-1" /> {product.category || "N/A"}
-                              </Badge>
-                              <Badge variant="outline" className="bg-secondary text-muted-foreground border-0">
-                                <Tag className="h-3 w-3 mr-1" /> {product.thuongHieu || "N/A"}
-                              </Badge>
-                              <Badge variant="outline" className="bg-secondary text-muted-foreground border-0">
-                                <Tag className="h-3 w-3 mr-1" /> {product.chatLieu || "N/A"}
-                              </Badge>
+              ) : filteredCombos.length > 0 ? (
+                filteredCombos.map((combo) => (
+                    <Link
+                          to={`/combo/${combo.maCombo}`}>
+                        <div
+                            key={combo.maCombo}
+                            className="rounded-2xl overflow-hidden border border-border colorful-card h-full flex flex-col"
+                        >
+                            <div
+                            className="aspect-video overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500"
+                            >
+                            <img
+                                src={combo.hinhAnh}
+                                alt={combo.name}
+                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            />
                             </div>
-                          </div>
-                          <span className="font-medium text-primary">
-                            {formatter.format(product.price)}
-                          </span>
+                            <div className="p-6 flex flex-col flex-1">
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                <h3 className="text-xl font-medium">{combo.name}</h3>
+                                <div className="flex gap-2 mt-1 flex-wrap">
+                                    {combo.sanPhams.map((product) => (
+                                    <Badge
+                                        key={product.idSanPham}
+                                        variant="outline"
+                                        className="bg-secondary text-muted-foreground border-0"
+                                    >
+                                        <Tag className="h-3 w-3 mr-1" /> {product.name}
+                                    </Badge>
+                                    ))}
+                                </div>
+                                </div>
+                                <span className="font-medium text-primary">
+                                {formatter.format(combo.gia)}
+                                </span>
+                            </div>
+                            <p className="text-muted-foreground flex-1">{combo.moTa}</p>
+                            <div className="mt-6 flex gap-2">
+                                <Link
+                                to={`/combo/${combo.maCombo}`}
+                                className="text-primary font-medium hover-effect hover:opacity-80"
+                                >
+                                Xem chi tiết
+                                </Link>
+                            </div>
+                            </div>
                         </div>
-                        <p className="text-muted-foreground flex-1">{product.description}</p>
-                        <div className="mt-6 flex gap-2">
-                          <Link
-                            to={`/product/${product.id}`}
-                            className="text-primary font-medium hover-effect hover:opacity-80"
-                          >
-                            Xem chi tiết
-                          </Link>
-                        </div>
-                      </div>
-                    </div>         
-                  </Link>
-
+                    </Link>
+                  
                 ))
               ) : (
                 <div className="col-span-full py-12 text-center">
-                  <h3 className="text-xl font-medium mb-2">Không tìm thấy sản phẩm</h3>
+                  <h3 className="text-xl font-medium mb-2">Không tìm thấy combo</h3>
                   <p className="text-muted-foreground">
                     Hãy thử điều chỉnh tiêu chí tìm kiếm hoặc bộ lọc
                   </p>
@@ -331,4 +328,4 @@ const ProductListing = () => {
   );
 };
 
-export default ProductListing;
+export default ComboListing;

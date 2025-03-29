@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // Thêm useNavigate
+import { useParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Heart, ShoppingBag, Star } from "lucide-react";
-import Swal from "sweetalert2"; // Thêm import SweetAlert2
+import Swal from "sweetalert2";
 
 const ComboDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // Khởi tạo useNavigate
+  const navigate = useNavigate();
   const [combo, setCombo] = useState(null);
   const [selections, setSelections] = useState({});
   const [comboQuantity, setComboQuantity] = useState(1);
   const [selectedImages, setSelectedImages] = useState({});
+  const [sizeQuantities, setSizeQuantities] = useState({}); // Lưu kích thước và số lượng từ API mới
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [colorSelected, setColorSelected] = useState({});
 
   useEffect(() => {
     const fetchCombo = async () => {
@@ -45,11 +47,6 @@ const ComboDetail = () => {
             name: product.name,
             brand: product.thuongHieu,
             productType: product.loaiSanPham,
-            sizes: product.kichThuoc.map(size => ({
-              size: size.trim(),
-              quantity: product.soLuong,
-              price: product.donGia,
-            })),
             colors: product.mauSac.map(color => `#${color}`),
             images: product.hinh.map(base64 => `data:image/jpeg;base64,${base64}`),
             material: product.chatLieu,
@@ -57,17 +54,19 @@ const ComboDetail = () => {
             rating: 4.5,
           })),
         };
-        console.log(formattedCombo);
         setCombo(formattedCombo);
 
         const initialSelections = {};
         const initialImages = {};
+        const initialColorSelected = {};
         formattedCombo.products.forEach(product => {
-          initialSelections[product.id] = { colorIndex: 0, sizeIndex: null };
+          initialSelections[product.id] = { colorIndex: null, sizeIndex: null };
           initialImages[product.id] = 0;
+          initialColorSelected[product.id] = false;
         });
         setSelections(initialSelections);
         setSelectedImages(initialImages);
+        setColorSelected(initialColorSelected);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -78,11 +77,52 @@ const ComboDetail = () => {
     fetchCombo();
   }, [id]);
 
+  const fetchSizeQuantities = async (productId, color) => {
+    try {
+      const colorCode = color.replace("#", "");
+      const response = await fetch(
+        `http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${productId}_${colorCode}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch size quantities");
+      }
+      const data = await response.json();
+      const productData = Array.isArray(data) ? data[0] : data;
+
+      const sizeData = productData.details.map(detail => ({
+        size: detail.kichThuoc.trim(),
+        quantity: detail.soLuong,
+        price: detail.gia,
+      }));
+
+      setSizeQuantities(prev => ({
+        ...prev,
+        [productId]: sizeData, // Lưu toàn bộ danh sách kích thước từ API
+      }));
+    } catch (err) {
+      console.error("Error fetching size quantities:", err);
+    }
+  };
+
   const handleSelectionChange = (productId, field, value) => {
-    setSelections(prev => ({
-      ...prev,
-      [productId]: { ...prev[productId], [field]: value },
-    }));
+    setSelections(prev => {
+      const newSelections = {
+        ...prev,
+        [productId]: { ...prev[productId], [field]: value },
+      };
+
+      if (field === "colorIndex") {
+        const selectedColor = combo.products.find(p => p.id === productId)
+          .colors[value];
+        fetchSizeQuantities(productId, selectedColor);
+        setColorSelected(prev => ({
+          ...prev,
+          [productId]: true,
+        }));
+      }
+
+      return newSelections;
+    });
   };
 
   const handleImageChange = (productId, index) => {
@@ -90,20 +130,17 @@ const ComboDetail = () => {
   };
 
   const handleAddToCart = async () => {
-    // Lấy userId từ localStorage
     const userId = localStorage.getItem("userId");
-
-    // Kiểm tra nếu không có userId thì hiển thị SweetAlert và chuyển hướng
     if (!userId) {
       Swal.fire({
         title: "Vui lòng đăng nhập!",
         text: "Bạn cần đăng nhập để thêm combo vào giỏ hàng.",
         icon: "warning",
-        timer: 2000, // Hiển thị trong 2 giây
+        timer: 2000,
         timerProgressBar: true,
         showConfirmButton: false,
       }).then(() => {
-        navigate("/login"); // Chuyển hướng sau khi thông báo biến mất
+        navigate("/login");
       });
       return;
     }
@@ -124,20 +161,17 @@ const ComboDetail = () => {
     }
 
     const cartData = {
-      IDKhachHang: userId, // Sử dụng userId từ localStorage thay vì "KH001"
+      IDKhachHang: userId,
       IDCombo: Number(combo.id),
       SoLuong: Number(comboQuantity),
       Detail: combo.products.map(product => ({
         MaSanPham: String(product.id),
         MauSac: product.colors[selections[product.id].colorIndex].replace("#", ""),
-        KichThuoc: product.sizes[selections[product.id].sizeIndex].size,
+        KichThuoc: sizeQuantities[product.id][selections[product.id].sizeIndex].size,
       })),
     };
-    console.log(cartData);
 
     try {
-      console.log("Sending cart data:", cartData); // For debugging
-      
       const response = await fetch("http://localhost:5261/api/Cart/ThemComboVaoGioHang", {
         method: "POST",
         headers: {
@@ -145,12 +179,12 @@ const ComboDetail = () => {
         },
         body: JSON.stringify(cartData),
       });
-  
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to add combo to cart: ${errorText}`);
       }
-  
+
       Swal.fire({
         title: "Thành công!",
         text: "Đã thêm combo vào giỏ hàng thành công!",
@@ -160,7 +194,6 @@ const ComboDetail = () => {
         showConfirmButton: false,
       });
     } catch (err) {
-      console.error("Error adding combo to cart:", err);
       Swal.fire({
         title: "Lỗi!",
         text: `Có lỗi xảy ra khi thêm vào giỏ hàng: ${err.message}`,
@@ -194,7 +227,6 @@ const ComboDetail = () => {
       <div className="pt-24 pb-16 px-6 min-h-screen bg-gradient-to-b from-white to-secondary/20">
         <div className="container mx-auto max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Cột trái: Ảnh combo, Số lượng, Nút thêm vào giỏ hàng và yêu thích */}
             <div className="space-y-6">
               <div className="rounded-xl overflow-hidden border border-border bg-white shadow-sm">
                 <img
@@ -204,7 +236,6 @@ const ComboDetail = () => {
                 />
               </div>
 
-              {/* Combo Quantity */}
               <div>
                 <h4 className="text-sm font-medium mb-2">Số Lượng Combo</h4>
                 <div className="flex items-center border border-border rounded-md w-32">
@@ -225,7 +256,6 @@ const ComboDetail = () => {
                 </div>
               </div>
 
-              {/* Add to Cart and Favorite */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   className="flex-1 h-12 px-6 gradient-bg text-white rounded-full hover:opacity-90 transition-opacity flex items-center justify-center"
@@ -240,7 +270,6 @@ const ComboDetail = () => {
               </div>
             </div>
 
-            {/* Cột phải: Chi tiết combo và danh sách sản phẩm */}
             <div className="flex flex-col space-y-6">
               <h1 className="text-3xl md:text-4xl font-medium mb-6 gradient-text">{combo.name}</h1>
               <div>
@@ -248,12 +277,10 @@ const ComboDetail = () => {
                 <p className="text-muted-foreground">{combo.description}</p>
               </div>
 
-              {/* Product Selections */}
               {combo.products.map(product => (
                 <div key={product.id} className="border p-4 rounded-lg">
                   <h3 className="text-lg font-medium mb-2">{product.name}</h3>
 
-                  {/* Product Slider */}
                   <div className="space-y-4">
                     <div className="rounded-xl overflow-hidden border border-border bg-white shadow-sm">
                       <img
@@ -285,7 +312,6 @@ const ComboDetail = () => {
                     </div>
                   </div>
 
-                  {/* Colors */}
                   <div className="mt-4">
                     <h4 className="text-sm font-medium mb-2">Màu Sắc</h4>
                     <div className="flex gap-3">
@@ -308,28 +334,30 @@ const ComboDetail = () => {
                     </div>
                   </div>
 
-                  {/* Sizes */}
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2">Kích Thước</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {product.sizes.map((sizeObj, index) => (
-                        <button
-                          key={index}
-                          className={cn(
-                            "h-10 min-w-[40px] px-3 rounded border text-sm font-medium transition-all",
-                            selections[product.id].sizeIndex === index
-                              ? "border-primary bg-primary/10 shadow-lg"
-                              : "border-border hover:border-primary/50"
-                          )}
-                          onClick={() =>
-                            handleSelectionChange(product.id, "sizeIndex", index)
-                          }
-                        >
-                          {sizeObj.size}
-                        </button>
-                      ))}
+                  {colorSelected[product.id] && sizeQuantities[product.id] && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2">Kích Thước</h4>
+                      <div className="flex flex-col gap-2">
+                        {sizeQuantities[product.id].map((sizeObj, index) => (
+                          <button
+                            key={index}
+                            className={cn(
+                              "h-10 px-3 rounded border text-sm font-medium transition-all flex justify-between items-center",
+                              selections[product.id].sizeIndex === index
+                                ? "border-primary bg-primary/10 shadow-lg"
+                                : "border-border hover:border-primary/50"
+                            )}
+                            onClick={() =>
+                              handleSelectionChange(product.id, "sizeIndex", index)
+                            }
+                          >
+                            <span>{sizeObj.size}</span>
+                            <span className="text-muted-foreground">{sizeObj.quantity}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

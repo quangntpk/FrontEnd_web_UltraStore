@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate} from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Heart, ShoppingBag, Star, Trash2 } from "lucide-react";
-import Swal from "sweetalert2"; // Thêm import SweetAlert2
+import Swal from "sweetalert2";
 
 // Component thông báo tùy chỉnh
 const Notification = ({ message, type, onClose }) => {
@@ -69,8 +69,8 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // State cho yêu thích
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  //  State cho yêu thích
   const [isLiked, setIsLiked] = useState(false);
   const [likedId, setLikedId] = useState(null);
 
@@ -135,7 +135,8 @@ const ProductDetail = () => {
             images: product.hinhAnhs?.map(base64 => `data:image/jpeg;base64,${base64}`) || []
           };
         });
-
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`/products/${productId}`)}&size=100x100`;
+  setQrCodeUrl(qrUrl);
         // Fetch comments
         const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Failed to fetch comments");
@@ -258,20 +259,18 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = async () => {
-    // Lấy userId từ localStorage
     const userId = localStorage.getItem("userId");
 
-    // Kiểm tra nếu không có userId thì hiển thị SweetAlert và chuyển hướng
     if (!userId) {
       Swal.fire({
         title: "Vui lòng đăng nhập!",
         text: "Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.",
         icon: "warning",
-        timer: 2000, // Hiển thị trong 2 giây
+        timer: 2000,
         timerProgressBar: true,
         showConfirmButton: false,
       }).then(() => {
-        navigate("/login"); // Chuyển hướng sau khi thông báo biến mất
+        navigate("/login");
       });
       return;
     }
@@ -283,14 +282,20 @@ const ProductDetail = () => {
 
     const userData = JSON.parse(localStorage.getItem("user"));
     const maNguoiDung = userData?.maNguoiDung;
+    const selectedProduct = products[selectedColorIndex];
+    const selectedSize = selectedProduct.sizes[selectedSizeIndex];
 
     if (!maNguoiDung) {
       showNotification("Vui lòng đăng nhập trước khi thêm vào giỏ hàng!", "error");
       return;
     }
 
-    const selectedProduct = products[selectedColorIndex];
-    const selectedSize = selectedProduct.sizes[selectedSizeIndex];
+    // Validate số lượng
+    if (quantity > selectedSize.quantity) {
+      showNotification(`Số lượng vượt quá tồn kho! Chỉ còn ${selectedSize.quantity} sản phẩm.`, "error");
+      return;
+    }
+
     const cartData = {
       IDNguoiDung: maNguoiDung,
       IDSanPham: productId.split('_')[0] || productId,
@@ -462,6 +467,7 @@ const ProductDetail = () => {
   const availableSizes = getSizesForColor();
   const selectedPrice = selectedSizeIndex !== null ? currentProduct.sizes[selectedSizeIndex].price : currentProduct.price;
   const currentUserId = JSON.parse(localStorage.getItem("user"))?.maNguoiDung;
+  const stockQuantity = selectedSizeIndex !== null ? availableSizes[selectedSizeIndex].quantity : availableSizes[0].quantity;
 
   return (
     <>
@@ -500,6 +506,7 @@ const ProductDetail = () => {
                   </button>
                 ))}
               </div>
+              
             </div>
 
             {/* Product Details */}
@@ -578,16 +585,14 @@ const ProductDetail = () => {
                   <div className="flex-1 text-center">{quantity}</div>
                   <button
                     className="w-10 h-10 flex items-center justify-center text-lg"
-                    onClick={() =>
-                      setQuantity(Math.min(
-                        selectedSizeIndex !== null ? availableSizes[selectedSizeIndex].quantity : currentProduct.sizes[0].quantity,
-                        quantity + 1
-                      ))
-                    }
+                    onClick={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
                   >
                     +
                   </button>
                 </div>
+                <span className="text-xs text-muted-foreground mt-2 block">
+                  Số Lượng Sản phẩm còn lại trong kho: {stockQuantity}
+                </span>
               </div>
 
               {/* Product Features */}
@@ -629,6 +634,20 @@ const ProductDetail = () => {
                     )}
                   />
                 </button>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+              {qrCodeUrl && (
+                <div className="mt-6 flex items-center space-x-4">
+                  <h3 className="text-lg font-medium">
+                    Xem trên điện thoại :
+                  </h3>
+                  <img
+                    src={qrCodeUrl}
+                    alt="QR Code"
+                    className="w-20 h-20"
+                  />
+                </div>
+              )}
               </div>
             </div>
           </div>
@@ -696,7 +715,6 @@ const ProductDetail = () => {
                       </p>
                       <div className="flex items-center mt-2">
                         <button
-                         
                           className="flex items-center gap-1"
                         >
                           <Heart
@@ -705,7 +723,6 @@ const ProductDetail = () => {
                               likedComments.has(comment.maBinhLuan) ? "fill-red-500 text-red-500" : "text-gray-400"
                             )}
                           />
-                       
                         </button>
                       </div>
                     </div>

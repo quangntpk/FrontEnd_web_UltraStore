@@ -171,7 +171,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
         } else {
           sizeSet.add(detail.KichThuoc);
         }
-        if (detail.SoLuong <= 0) {
+        if (detail.SoLuong < 0) {
           errorList[`${index}-details-${detailIndex}-soLuong`] = `- Số lượng của kích thước ${detail.KichThuoc} thuộc mã màu ${item.MauSac} phải lớn hơn 0.`;
           hasError = true;
         }

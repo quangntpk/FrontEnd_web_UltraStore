@@ -9,7 +9,7 @@ import axios from "axios";
 const navItems = [
   { name: "Trang Chủ", path: "/" },
   { name: "Cửa Hàng", path: "/products" },
-  { name: "Combo", path: "#pricing" },
+  { name: "Combo", path: "/combo" },
   { name: "Voucher", path: "/Voucher" },
   { name: "Yêu Thích", path: "/YeuThich" },
   { name: "Liên Hệ", path: "/Contact" },

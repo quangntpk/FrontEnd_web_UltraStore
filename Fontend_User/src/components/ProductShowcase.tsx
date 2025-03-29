@@ -82,20 +82,17 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
         />
       </div>
       <div className="p-6 flex flex-col flex-1">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-medium">{product.name}</h3>
-          <span className="font-medium text-primary">{product.price} VND</span>
-        </div>
-        <p className="text-muted-foreground flex-1"><strong>Chất Liệu: </strong>{product.chatlieu}</p>
-        <p className="text-muted-foreground flex-1"><strong>Thương Hiệu: </strong>{product.thuonghieu}</p>
-        <div className="mt-6 flex gap-2">
-          <Link 
+        <Link 
             to={`/product/${product.id}`}
             className="text-primary font-medium hover-effect hover:opacity-80"
           >
-            Chi Tiết
-          </Link>
-        </div>
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-xl font-medium">{product.name}</h3>
+              <span className="font-medium text-primary">{product.price} VND</span>
+            </div>
+            <p className="text-muted-foreground flex-1"><strong>Chất Liệu: </strong>{product.chatlieu}</p>
+            <p className="text-muted-foreground flex-1"><strong>Thương Hiệu: </strong>{product.thuonghieu}</p>
+        </Link>
       </div>
     </div>
   );
