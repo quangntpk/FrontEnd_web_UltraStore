@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Filter, Grid2X2, List, MoreVertical, Tag } from "lucide-react";
 import EditProductModal from "@/components/SanPhamAdmin/EditProductModal";
 import CreateSanPhamModal from "@/components/SanPhamAdmin/CreateSanPhamModal";
-import DetailSanPhamModal from "@/components/SanPhamAdmin/DetailSanPhamModal"; // Import modal chi tiết
+import DetailSanPhamModal from "@/components/SanPhamAdmin/DetailSanPhamModal";
 import Swal from "sweetalert2";
 
 const Products = () => {
@@ -22,10 +22,13 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // Thêm state cho modal chi tiết
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productEdit, setProductEdit] = useState(null);
-  const [selectedProductId, setSelectedProductId] = useState(null); // Thêm state cho ID sản phẩm được chọn
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [sortBy, setSortBy] = useState(""); // Sắp xếp: "" | "price-asc" | "price-desc" | "name-asc" | "name-desc"
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 12;
 
   const fetchProducts = async () => {
     try {
@@ -71,11 +74,38 @@ const Products = () => {
     fetchProducts();
   }, []);
 
-  const filteredProducts = products.filter(
-    (product) =>
-      (product.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (product.loaiSanPham?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-  );
+  const getSortedProducts = () => {
+    let filtered = [...products].filter(
+      (product) =>
+        (product.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (product.loaiSanPham?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+    );
+
+    switch (sortBy) {
+      case "price-asc":
+        return filtered.sort((a, b) => (a.donGia || 0) - (b.donGia || 0));
+      case "price-desc":
+        return filtered.sort((a, b) => (b.donGia || 0) - (a.donGia || 0));
+      case "name-asc":
+        return filtered.sort((a, b) => 
+          (a.name || "").localeCompare(b.name || ""));
+      case "name-desc":
+        return filtered.sort((a, b) => 
+          (b.name || "").localeCompare(a.name || ""));
+      default:
+        return filtered;
+    }
+  };
+
+  const sortedProducts = getSortedProducts();
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = sortedProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
@@ -103,11 +133,8 @@ const Products = () => {
         try {
           const response = await fetch(`http://localhost:5261/api/SanPham/DeleteSanPham?id=${product.id}`, {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
           });
-  
           if (response.ok) {
             Swal.fire({
               title: "Thành công!",
@@ -117,32 +144,25 @@ const Products = () => {
               timerProgressBar: true,
               showConfirmButton: false,
             }).then(() => {
-              window.location.reload();
+              fetchProducts();
             });
           } else {
             Swal.fire({
               title: "Lỗi!",
-              text: "Có lỗi xảy ra khi xóa sản phẩm.",
+              text: "Có lỗi xảy ra khi ngưng bán sản phẩm.",
               icon: "error",
-              timer: 3000,
-              timerProgressBar: true,
-              showConfirmButton: false,
             });
           }
         } catch (error) {
-          console.error("Lỗi khi gửi dữ liệu:", error);
           Swal.fire({
             title: "Lỗi!",
-            text: "Có lỗi xảy ra khi gửi dữ liệu tới API.",
+            text: "Có lỗi hệ thống khi ngưng bán.",
             icon: "error",
-            timer: 3000,
-            timerProgressBar: true,
-            showConfirmButton: false,
           });
         }
       }
     });
-  };  
+  };
 
   const handleActiveProduct = async (product) => {
     Swal.fire({
@@ -150,8 +170,8 @@ const Products = () => {
       text: `Sản phẩm ${product.name} mang mã ${product.id} sẽ chuyển sang trạng thái đang bán!`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       confirmButtonText: "Đang bán",
       cancelButtonText: "Hủy",
     }).then(async (result) => {
@@ -159,11 +179,8 @@ const Products = () => {
         try {
           const response = await fetch(`http://localhost:5261/api/SanPham/ActiveSanPham?id=${product.id}`, {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
           });
-  
           if (response.ok) {
             Swal.fire({
               title: "Thành công!",
@@ -173,35 +190,28 @@ const Products = () => {
               timerProgressBar: true,
               showConfirmButton: false,
             }).then(() => {
-              window.location.reload();
+              fetchProducts();
             });
           } else {
             Swal.fire({
               title: "Lỗi!",
               text: "Có lỗi xảy ra khi mở bán lại sản phẩm.",
               icon: "error",
-              timer: 3000,
-              timerProgressBar: true,
-              showConfirmButton: false,
             });
           }
         } catch (error) {
-          console.error("Lỗi khi gửi dữ liệu:", error);
           Swal.fire({
             title: "Lỗi!",
-            text: "Có lỗi xảy ra khi gửi dữ liệu tới API.",
+            text: "Có lỗi hệ thống khi mở bán lại.",
             icon: "error",
-            timer: 3000,
-            timerProgressBar: true,
-            showConfirmButton: false,
           });
         }
       }
     });
-  };  
+  };
 
   const handleAddProductSuccess = () => {
-    fetchProducts(); 
+    fetchProducts();
   };
 
   if (loading) {
@@ -240,9 +250,34 @@ const Products = () => {
               />
             </div>
             <div className="flex gap-2 self-end">
-              <Button variant="outline" size="sm" className="h-9">
-                <Filter className="h-4 w-4 mr-2" /> Lọc
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <Filter className="h-4 w-4 mr-2" />
+                    {sortBy === "" ? "Sắp xếp" : 
+                      sortBy === "price-asc" ? "Giá thấp - cao" :
+                      sortBy === "price-desc" ? "Giá cao - thấp" :
+                      sortBy === "name-asc" ? "A - Z" : "Z - A"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setSortBy("")}>
+                    Mặc định
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("price-asc")}>
+                    Giá: Thấp đến Cao
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("price-desc")}>
+                    Giá: Cao đến Thấp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("name-asc")}>
+                    Tên: A - Z
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("name-desc")}>
+                    Tên: Z - A
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="flex border rounded-md">
                 <Button
                   variant={view === "grid" ? "secondary" : "ghost"}
@@ -266,7 +301,7 @@ const Products = () => {
 
           {view === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
+              {currentProducts.map((product) => (
                 <Card key={product.id} className="hover-scale overflow-hidden group">
                   <div className="h-40 bg-purple-light flex items-center justify-center">
                     <img
@@ -344,7 +379,7 @@ const Products = () => {
             </div>
           ) : (
             <div className="border rounded-md divide-y">
-              {filteredProducts.map((product) => (
+              {currentProducts.map((product) => (
                 <div
                   key={product.id}
                   className="p-4 flex items-center gap-4 hover:bg-muted/50"
@@ -407,9 +442,41 @@ const Products = () => {
               ))}
             </div>
           )}
-          {filteredProducts.length === 0 && (
+
+          {currentProducts.length === 0 && (
             <div className="text-center py-10">
               <p className="text-muted-foreground">Không tìm thấy sản phẩm nào</p>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Trước
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Sau
+              </Button>
             </div>
           )}
         </CardContent>

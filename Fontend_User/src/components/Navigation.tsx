@@ -7,11 +7,12 @@ import { toast } from "react-toastify";
 import axios from "axios";
 
 const navItems = [
-  { name: "Products", path: "/products" },
-  { name: "Features", path: "#features" },
-  { name: "Pricing", path: "#pricing" },
-  { name: "About", path: "#about" },
-  { name: "Contact", path: "#contact" },
+  { name: "Trang Chủ", path: "/" },
+  { name: "Cửa Hàng", path: "/products" },
+  { name: "Combo", path: "#pricing" },
+  { name: "Voucher", path: "/Voucher" },
+  { name: "Yêu Thích", path: "/YeuThich" },
+  { name: "Liên Hệ", path: "/Contact" },
 ];
 
 const Navigation = () => {
@@ -20,7 +21,6 @@ const Navigation = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
   const navigate = useNavigate();
 
-  // Lắng nghe sự kiện scroll để cập nhật giao diện
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -83,7 +83,7 @@ const Navigation = () => {
     <header className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300", scrolled ? "glass py-3" : "py-5")}>
       <div className="container px-6 mx-auto flex items-center justify-between bg-slate-50 rounded-xl">
         <Link to="/" className="relative z-10">
-          <span className="text-xl font-medium tracking-tight gradient-text">Minimalist</span>
+          <span className="text-xl font-medium tracking-tight gradient-text">UltraStore</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -111,6 +111,7 @@ const Navigation = () => {
               <ClipboardList className="mr-2 h-4 w-4" /> Đơn hàng
             </Button>
           </Link>
+
           {isLoggedIn ? (
             <>
               <Button

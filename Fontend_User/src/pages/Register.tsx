@@ -267,7 +267,7 @@ const handleVerifyOtp = async (e: React.FormEvent) => {
       <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-background to-secondary/30">
         <div className="w-full max-w-md space-y-8 my-[50px]">
           <div className="text-center">
-            <h1 className="text-4xl font-bold tracking-tight gradient-text">Đăng ký</h1>
+            <h1 className="text-4xl font-bold tracking-tight gradient-text" style={{ paddingBottom: '0.5rem' }}>Đăng ký</h1>
             <p className="mt-2 text-muted-foreground">
               Tạo tài khoản để trải nghiệm mua sắm tuyệt vời
             </p>

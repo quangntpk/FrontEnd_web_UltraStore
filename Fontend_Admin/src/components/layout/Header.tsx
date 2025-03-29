@@ -88,6 +88,15 @@ const Header = ({ title }: HeaderProps) => {
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-6 sticky top-0 bg-background/80 backdrop-blur-sm z-20">
+=======
+import { Link } from 'react-router-dom';
+type HeaderProps = {
+  title: string;
+};
+const Header = ({
+  title
+}: HeaderProps) => {
+  return <header className="h-16 border-b border-border flex items-center justify-between px-6 sticky top-0 bg-background/80 backdrop-blur-sm z-20">
       <h1 className="text-xl font-semibold">{title}</h1>
       <div className="flex items-center gap-4 my-[20px]">
         <div className="relative max-w-xs w-72 hidden md:block">
@@ -166,11 +175,23 @@ const Header = ({ title }: HeaderProps) => {
                 </DropdownMenuItem>
               </>
             )}
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </header>
-  );
+    </header>;
 };
 
 export default Header;

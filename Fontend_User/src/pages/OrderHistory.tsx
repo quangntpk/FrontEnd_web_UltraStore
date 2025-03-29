@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/Navigation";
@@ -20,10 +19,28 @@ const orderStatuses = {
   "processing": { color: "bg-blue-500", icon: Package, label: "Đang xử lý" },
   "shipping": { color: "bg-purple-500", icon: Truck, label: "Đang giao hàng" },
   "completed": { color: "bg-green-500", icon: CheckCircle, label: "Đã hoàn thành" },
-};
+} as const;
 
-// Mock data for the orders
-const mockOrders = [
+// Define type for status based on orderStatuses keys
+type OrderStatus = keyof typeof orderStatuses;
+
+// Define order interface
+interface Order {
+  id: string;
+  date: string;
+  status: OrderStatus;
+  total: number;
+  items: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    price: number;
+    image: string;
+  }>;
+}
+
+// Mock data for the orders with correct status type
+const mockOrders: Order[] = [
   {
     id: "ORD-12345",
     date: "2023-10-15",
@@ -66,19 +83,7 @@ const mockOrders = [
 ];
 
 interface OrderItemProps {
-  order: {
-    id: string;
-    date: string;
-    status: keyof typeof orderStatuses;
-    total: number;
-    items: Array<{
-      id: number;
-      name: string;
-      quantity: number;
-      price: number;
-      image: string;
-    }>;
-  };
+  order: Order;
 }
 
 const OrderItem = ({ order }: OrderItemProps) => {

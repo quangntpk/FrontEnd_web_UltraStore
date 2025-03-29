@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { FaCheck, FaTimes, FaEye, FaTrashAlt } from 'react-icons/fa';
-
 import {
   Card,
   CardContent,
@@ -34,11 +32,22 @@ import {
 import {
   Search,
   Plus,
-  Filter,
   RefreshCw,
-  MoreVertical
-} from "lucide-react";
+  MoreVertical,
+  CheckCircle,
+  XCircle,
+  Eye,
+  Trash2
+} from "lucide-react"; // Thêm các icon mới
 import toast, { Toaster } from "react-hot-toast";
+
+// Hàm định dạng ngày giờ
+const formatDateTime = (dateString) => {
+  const date = new Date(dateString);
+  const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  return `${datePart}, ${timePart}`;
+};
 
 const Comments = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,7 +64,7 @@ const Comments = () => {
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5261/api/comment/list`);
+      const response = await fetch(`http://localhost:5261/api/Comment/list`);
       if (!response.ok) {
         throw new Error('Không thể lấy dữ liệu bình luận');
       }
@@ -88,7 +97,6 @@ const Comments = () => {
     }
   };
 
-  // Hàm duyệt bình luận
   const handleApproveComment = async (comment) => {
     try {
       const response = await fetch(`http://localhost:5261/api/comment/approve/${comment.maBinhLuan}`, {
@@ -107,7 +115,6 @@ const Comments = () => {
     }
   };
 
-  // Thêm hàm hủy duyệt bình luận
   const handleUnapproveComment = async (comment) => {
     try {
       const response = await fetch(`http://localhost:5261/api/comment/unapprove/${comment.maBinhLuan}`, {
@@ -137,8 +144,8 @@ const Comments = () => {
       (item.maBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
       (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
       (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (item.maSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
-
+      (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+      (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
     );
   });
 
@@ -165,10 +172,9 @@ const Comments = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Bình Luận</h1>
         </div>
-        {/*} <Button className="bg-purple hover:bg-purple-medium">
+        {/* <Button className="bg-purple hover:bg-purple-medium">
           <Plus className="mr-2 h-4 w-4" /> Thêm Bình Luận
-        </Button>
-        */}
+        </Button> */}
       </div>
 
       <Card>
@@ -188,10 +194,6 @@ const Comments = () => {
               />
             </div>
             <div className="flex gap-2 self-end">
-              {/* <Button variant="outline" size="sm" className="h-9">
-                <Filter className="h-4 w-4 mr-2" />
-                Lọc
-              </Button> */}
               <Button variant="outline" size="sm" className="h-9" onClick={fetchComments}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Làm Mới
@@ -204,8 +206,8 @@ const Comments = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Sản Phẩm</TableHead>
-                  <TableHead>Người Dùng</TableHead>
+                  <TableHead>Tên Sản Phẩm</TableHead>
+                  <TableHead>Họ Tên</TableHead>
                   <TableHead>Nội Dung</TableHead>
                   <TableHead>Trạng Thái</TableHead>
                   <TableHead>Ngày Bình Luận</TableHead>
@@ -223,36 +225,24 @@ const Comments = () => {
                   currentComments.map((item) => (
                     <TableRow key={item.maBinhLuan} className="hover:bg-muted/50">
                       <TableCell>{item.maBinhLuan}</TableCell>
-                      <TableCell>{item.maSanPham}</TableCell>
-                      <TableCell>{item.maNguoiDung}</TableCell>
+                      <TableCell>{item.tenSanPham}</TableCell>
+                      <TableCell>{item.hoTen}</TableCell>
                       <TableCell>{item.noiDungBinhLuan}</TableCell>
                       <TableCell>
                         <span
                           className={
                             item.trangThai === 1
-                              ? 'bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-100'  // "Đã Duyệt" (green)
+                              ? 'bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-100'
                               : item.trangThai === 0
-                                ? 'bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-100'  // "Chưa Duyệt" (red)
+                                ? 'bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-100'
                                 : ''
                           }
                         >
-                          {item.trangThai === 0
-                            ? "Chưa Duyệt"
-                            : item.trangThai === 1
-                              ? "Đã Duyệt"
-                              : ""
-                          }
+                          {item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : ""}
                         </span>
                       </TableCell>
-
-
                       <TableCell>
-                        {item.ngayBinhLuan ? (() => {
-                          const date = new Date(item.ngayBinhLuan);
-                          const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                          const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                          return `${datePart}, ${timePart}`;
-                        })() : 'Ngày không hợp lệ'}
+                        {item.ngayBinhLuan ? formatDateTime(item.ngayBinhLuan) : 'Ngày không hợp lệ'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -263,25 +253,27 @@ const Comments = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {item.trangThai === 0 ? (
-                              <DropdownMenuItem onClick={() => handleApproveComment(item)}>
-                                <FaCheck className="mr-2 h-4 w-4 text-green-500" /> Duyệt
+                              <DropdownMenuItem onClick={() => handleApproveComment(item)} className="flex items-center">
+                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                Duyệt
                               </DropdownMenuItem>
                             ) : (
-                              <DropdownMenuItem onClick={() => handleUnapproveComment(item)}>
-                                <FaTimes className="mr-2 h-4 w-4 text-red-500" /> Hủy Duyệt
+                              <DropdownMenuItem onClick={() => handleUnapproveComment(item)} className="flex items-center">
+                                <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                Hủy Duyệt
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => handleDetailClick(item)}>
-                              <FaEye className="mr-2 h-4 w-4 text-blue-500" /> Chi Tiết
+                            <DropdownMenuItem onClick={() => handleDetailClick(item)} className="flex items-center">
+                              <Eye className="mr-2 h-4 w-4 text-blue-500" />
+                              Chi Tiết
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteClick(item)}>
-                              <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Xóa
+                            <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="flex items-center">
+                              <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                              Xóa
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
-
-
                     </TableRow>
                   ))
                 ) : (
@@ -341,45 +333,61 @@ const Comments = () => {
 
       {/* Modal chi tiết bình luận */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-        <DialogContent>
+        <DialogContent className="p-6 max-w-3xl w-full">
           <DialogHeader>
             <DialogTitle>Chi Tiết Bình Luận</DialogTitle>
           </DialogHeader>
           {selectedComment && (
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-6 mt-4">
               <div>
-                <strong>ID Bình Luận:</strong> {selectedComment.maBinhLuan}
+                <label className="block text-sm font-medium">ID Bình Luận</label>
+                <Input value={selectedComment.maBinhLuan || "Chưa cập nhật"} disabled />
               </div>
               <div>
-                <strong>Sản Phẩm:</strong> {selectedComment.maSanPham || "Không có"}
+                <label className="block text-sm font-medium">Mã Sản Phẩm</label>
+                <Input value={selectedComment.maSanPham || "Chưa cập nhật"} disabled />
               </div>
               <div>
-                <strong>Người Dùng:</strong> {selectedComment.maNguoiDung || "Không có"}
+                <label className="block text-sm font-medium">Tên Sản Phẩm</label>
+                <Input value={selectedComment.tenSanPham || "Chưa cập nhật"} disabled />
               </div>
               <div>
-                <strong>Nội Dung:</strong> {selectedComment.noiDungBinhLuan}
+                <label className="block text-sm font-medium">Mã Người Dùng</label>
+                <Input value={selectedComment.maNguoiDung || "Chưa cập nhật"} disabled />
               </div>
               <div>
-                <strong>Số Tim:</strong> {selectedComment.soTimBinhLuan}
+                <label className="block text-sm font-medium">Họ Tên</label>
+                <Input value={selectedComment.hoTen || "Chưa cập nhật"} disabled />
               </div>
               <div>
-                <strong>Đánh Giá:</strong> {selectedComment.danhGia} / 5
+                <label className="block text-sm font-medium">Nội Dung</label>
+                <Input value={selectedComment.noiDungBinhLuan || "Chưa cập nhật"} disabled />
               </div>
               <div>
-                <strong>Trạng Thái:</strong> {selectedComment.trangThai === 0 ? "Chưa Duyệt" : "Đã Duyệt"}
+                <label className="block text-sm font-medium">Số Tim</label>
+                <Input value={selectedComment.soTimBinhLuan ?? "0"} disabled />
               </div>
               <div>
-                <strong>Ngày Bình Luận:</strong>
-                {selectedComment.ngayBinhLuan ? (() => {
-                  const date = new Date(selectedComment.ngayBinhLuan);
-                  const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                  return `${datePart}, ${timePart}`;
-                })() : 'Ngày không hợp lệ'}
+                <label className="block text-sm font-medium">Đánh Giá</label>
+                <Input value={`${selectedComment.danhGia || 0} / 5`} disabled />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Trạng Thái</label>
+                <Input
+                  value={selectedComment.trangThai === 0 ? "Chưa Duyệt" : "Đã Duyệt"}
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Ngày Bình Luận</label>
+                <Input
+                  value={selectedComment.ngayBinhLuan ? formatDateTime(selectedComment.ngayBinhLuan) : "Chưa cập nhật"}
+                  disabled
+                />
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
               Đóng
             </Button>
