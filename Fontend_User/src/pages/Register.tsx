@@ -144,7 +144,6 @@ try {
   console.log("Response data:", response.data); // Kiểm tra dữ liệu API
   const toastId = toast({
     title: "Đăng ký thành công 🎉",
-    description: message ? `${message} - Chào mừng bạn đến với Minimalist!` : "Chào mừng bạn đến với Minimalist!",
     duration: 3000,
     className: "bg-green-500 text-white border border-green-700 shadow-lg p-4 rounded-md",
     action: (
@@ -200,7 +199,6 @@ try {
                 <Label htmlFor="fullName">Họ và tên</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  <Input id="fullName" placeholder="Nguyễn Văn A" type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="pl-10" required />
                 </div>
               </div>
 
@@ -208,7 +206,6 @@ try {
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  <Input id="email" placeholder="your.email@example.com" type="email" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required />
                 </div>
               </div>
 
@@ -243,12 +240,10 @@ try {
               <div className="flex items-center">
                 <input id="terms" type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked={agreeToTerms} onChange={e => setAgreeToTerms(e.target.checked)} required />
                 <label htmlFor="terms" className="ml-2 block text-sm text-muted-foreground">
-                  Tôi đồng ý với{" "}
-                  <Link to="/terms" className="text-primary hover:underline">
+                  Tôi đồng ý với {" "}
                     Điều khoản dịch vụ
                   </Link>{" "}
                   và{" "}
-                  <Link to="/privacy" className="text-primary hover:underline">
                     Chính sách bảo mật
                   </Link>
                 </label>
@@ -260,7 +255,6 @@ try {
                   </>}
               </Button>
             </form>
-
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -292,7 +286,6 @@ try {
                   Facebook
                 </Button>
               </div>
-            </div>
           </div>
 
           <p className="text-center text-sm text-muted-foreground">

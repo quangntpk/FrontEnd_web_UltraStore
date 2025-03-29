@@ -38,11 +38,26 @@ import {
   XCircle,
   Eye,
   Trash2
-} from "lucide-react"; // Thêm các icon mới
+} from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
+// Define the Comment type based on your API response
+interface Comment {
+  maBinhLuan: number;
+  maSanPham?: number;
+  tenSanPham?: string;
+  maNguoiDung?: number;
+  hoTen?: string;
+  noiDungBinhLuan?: string;
+  soTimBinhLuan?: number;
+  danhGia?: number;
+  trangThai: number; // 0: Chưa duyệt, 1: Đã duyệt
+  ngayBinhLuan?: string;
+}
+
 // Hàm định dạng ngày giờ
-const formatDateTime = (dateString) => {
+const formatDateTime = (dateString?: string): string => {
+  if (!dateString) return "Ngày không hợp lệ";
   const date = new Date(dateString);
   const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -50,25 +65,24 @@ const formatDateTime = (dateString) => {
 };
 
 const Comments = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [openDeleteModal, setOpenDeleteModal] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState(null);
-  const [openDetailModal, setOpenDetailModal] = useState(false);
-  const [selectedComment, setSelectedComment] = useState(null);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const commentsPerPage = 10;
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+  const [commentToDelete, setCommentToDelete] = useState<Comment | null>(null);
+  const [openDetailModal, setOpenDetailModal] = useState<boolean>(false);
+  const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const commentsPerPage: number = 10;
 
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5261/api/Comment/list`);
+      const response = await fetch("http://localhost:5261/api/Comment/list");
       if (!response.ok) {
         throw new Error('Không thể lấy dữ liệu bình luận');
       }
-      const data = await response.json();
+      const data: Comment[] = await response.json();
       setComments(data);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách bình luận:', error);
@@ -97,7 +111,7 @@ const Comments = () => {
     }
   };
 
-  const handleApproveComment = async (comment) => {
+  const handleApproveComment = async (comment: Comment) => {
     try {
       const response = await fetch(`http://localhost:5261/api/comment/approve/${comment.maBinhLuan}`, {
         method: 'PUT',
@@ -115,7 +129,7 @@ const Comments = () => {
     }
   };
 
-  const handleUnapproveComment = async (comment) => {
+  const handleUnapproveComment = async (comment: Comment) => {
     try {
       const response = await fetch(`http://localhost:5261/api/comment/unapprove/${comment.maBinhLuan}`, {
         method: 'PUT',
@@ -137,29 +151,31 @@ const Comments = () => {
     fetchComments();
   }, []);
 
-  const filteredComments = comments.filter(item => {
-    const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
-    return (
-      (item.noiDungBinhLuan?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (item.maBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
-      (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
-      (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
-    );
-  });
+  const filteredComments = comments
+    .filter(item => {
+      const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
+      return (
+        (item.noiDungBinhLuan?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+        (item.maBinhLuan.toString().includes(searchTerm.toLowerCase()) || '') ||
+        (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
+        (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+        (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+        (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
+      );
+    })
+    .sort((a, b) => new Date(b.ngayBinhLuan || "").getTime() - new Date(a.ngayBinhLuan || "").getTime());
 
-  const indexOfLastComment = currentPage * commentsPerPage;
-  const indexOfFirstComment = indexOfLastComment - commentsPerPage;
-  const currentComments = filteredComments.slice(indexOfFirstComment, indexOfLastComment);
-  const totalPages = Math.ceil(filteredComments.length / commentsPerPage);
+  const indexOfLastComment: number = currentPage * commentsPerPage;
+  const indexOfFirstComment: number = indexOfLastComment - commentsPerPage;
+  const currentComments: Comment[] = filteredComments.slice(indexOfFirstComment, indexOfLastComment);
+  const totalPages: number = Math.ceil(filteredComments.length / commentsPerPage);
 
-  const handleDeleteClick = (comment) => {
+  const handleDeleteClick = (comment: Comment) => {
     setCommentToDelete(comment);
     setOpenDeleteModal(true);
   };
 
-  const handleDetailClick = (comment) => {
+  const handleDetailClick = (comment: Comment) => {
     setSelectedComment(comment);
     setOpenDetailModal(true);
   };
@@ -172,9 +188,6 @@ const Comments = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Bình Luận</h1>
         </div>
-        {/* <Button className="bg-purple hover:bg-purple-medium">
-          <Plus className="mr-2 h-4 w-4" /> Thêm Bình Luận
-        </Button> */}
       </div>
 
       <Card>

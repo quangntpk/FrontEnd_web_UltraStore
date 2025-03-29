@@ -13,12 +13,12 @@ const Header = ({
       <h1 className="text-xl font-semibold">{title}</h1>
       
       <div className="flex items-center gap-4 my-[20px]">
-        <div className="relative max-w-xs w-72 hidden md:block">
+        {/* <div className="relative max-w-xs w-72 hidden md:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input type="search" placeholder="Search..." className="pl-8 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-ring" />
-        </div>
+        </div> */}
         
-        <DropdownMenu>
+        {/* <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
@@ -45,7 +45,7 @@ const Header = ({
                 </DropdownMenuItem>)}
             </div>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -56,7 +56,7 @@ const Header = ({
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-base font-medium">My Account</p>
+                <p className="text-base font-medium"> Account</p>
                 <p className="text-xs text-muted-foreground">admin@example.com</p>
               </div>
             </DropdownMenuLabel>

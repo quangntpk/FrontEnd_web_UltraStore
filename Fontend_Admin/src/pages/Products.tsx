@@ -367,7 +367,7 @@ const Products = () => {
                     </div>
                     <div className="flex justify-between items-center mt-3">
                       <span className="font-bold text-purple">
-                        {(product.donGia / 1000)?.toFixed(1) || "0"}K VND
+                        {(product.donGia/1000)?.toFixed(3) || "0"} VND
                       </span>
                       <span className="text-xs text-muted-foreground">
                         Còn lại: {product.soLuong || 0} sản phẩm

@@ -170,7 +170,11 @@ const OrderList: React.FC = () => {
               <TableRow key={order.maDonHang} className="hover:bg-gray-50">
                 <TableCell>{order.maDonHang}</TableCell>
                 <TableCell>{order.tenNguoiNhan}</TableCell>
-                <TableCell>{new Date(order.ngayDat).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {order.ngayDat
+                    ? new Date(order.ngayDat.split('/').reverse().join('-')).toLocaleDateString('vi-VN')
+                    : 'Không có ngày'}
+                </TableCell>
                 <TableCell>
                   {order.trangThaiDonHang === 0 && 'Chưa xác nhận'}
                   {order.trangThaiDonHang === 1 && 'Đang xử lý'}

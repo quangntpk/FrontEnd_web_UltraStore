@@ -381,7 +381,7 @@ const Combos = () => {
                     </div>
                     <div className="flex justify-between items-center mt-3">
                       <span className="font-bold text-purple">
-                        {(combo.gia / 1000)?.toFixed(1) || "0"}K VND
+                        {(combo.gia / 1000)?.toFixed(3) || "0"} VND
                       </span>
                       <span className="text-xs text-muted-foreground">
                         Còn lại: {combo.soLuong || 0} combo

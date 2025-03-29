@@ -53,7 +53,7 @@ const Index = () => {
       <Navigation />
       <main>
         <Hero />
-        <Features />
+        {/* <Features /> */}
         
         {/* Search and Filtering Section */}
         <section className="py-12 px-6 bg-muted">

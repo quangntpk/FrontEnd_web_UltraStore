@@ -129,9 +129,9 @@ const Sidebar = () => {
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-md bg-purple flex items-center justify-center">
-              <span className="text-white font-bold">A</span>
+              <span className="text-white font-bold">U</span>
             </div>
-            <span className="font-semibold text-lg gradient-text">AdminPro</span>
+            <span className="font-semibold text-lg gradient-text">UltraStore</span>
           </div>
         )}
         <Button 
@@ -196,7 +196,7 @@ const Sidebar = () => {
           ))}
         </div>
 
-        <div className="space-y-1">
+        {/* <div className="space-y-1">
           {!isCollapsed && (
             <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
               Management
@@ -228,10 +228,10 @@ const Sidebar = () => {
               isCollapsed={isCollapsed}
             />
           ))}
-        </div>
+        </div> */}
       </nav>
 
-      <div className={cn(
+      {/* <div className={cn(
         'px-3 py-4 border-t border-border',
         isCollapsed ? 'text-center' : ''
       )}>
@@ -249,7 +249,7 @@ const Sidebar = () => {
             </div>
           )}
         </div>
-      </div>
+      </div> */}
     </aside>
   );
 };
