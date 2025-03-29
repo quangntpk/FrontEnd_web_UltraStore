@@ -1,184 +1,427 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
-const Inpaint: React.FC = () => {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [processedImage, setProcessedImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [prompt, setPrompt] = useState<string>('');
+const InpaintForm: React.FC = () => {
+  const [file1, setFile1] = useState<File | null>(null);
+  const [file2, setFile2] = useState<File | null>(null);
+  const [preview1, setPreview1] = useState<string | null>(null);
+  const [preview2, setPreview2] = useState<string | null>(null);
+  const [outputImage, setOutputImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [zoom1, setZoom1] = useState<number>(1);
+  const [zoom2, setZoom2] = useState<number>(1);
+  const [zoomOutput, setZoomOutput] = useState<number>(1);
+  const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
 
-  const REPLICATE_API_KEY = '';
-  const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
-  const downloadRef = useRef<HTMLAnchorElement>(null);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setImageFile(event.target.files[0]);
-      setProcessedImage(null);
+  const handleDrop = (
+    event: React.DragEvent<HTMLDivElement>,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+    setPreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+      const selectedFile = event.dataTransfer.files[0];
+      if (selectedFile.type.startsWith('image/')) {
+        setFile(selectedFile);
+        const previewUrl = URL.createObjectURL(selectedFile);
+        setPreview(previewUrl);
+      }
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
+  const handleClick = (
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+    setPreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files[0]) {
+        const selectedFile = target.files[0];
+        setFile(selectedFile);
+        const previewUrl = URL.createObjectURL(selectedFile);
+        setPreview(previewUrl);
+      }
+    };
+    input.click();
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleZoomIn = (setZoom: React.Dispatch<React.SetStateAction<number>>) => {
+    setZoom((prevZoom) => Math.min(prevZoom + 0.1, 3));
+  };
+
+  const handleZoomOut = (setZoom: React.Dispatch<React.SetStateAction<number>>) => {
+    setZoom((prevZoom) => Math.max(prevZoom - 0.1, 0.5));
+  };
+
+  useEffect(() => {
+    return () => {
+      if (preview1) URL.revokeObjectURL(preview1);
+      if (preview2) URL.revokeObjectURL(preview2);
+    };
+  }, [preview1, preview2]);
+
+  const readFileAsBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          const base64Data = reader.result.split(',')[1];
+          resolve(base64Data);
+        } else {
+          reject(new Error('Kết quả không phải là chuỗi'));
+        }
+      };
+      reader.onerror = reject;
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
     });
   };
 
-  const handleInpaint = async () => {
-    if (!imageFile || !prompt) {
-      alert('Vui lòng chọn ảnh và nhập mô tả!');
+  const handleSubmit = async () => {
+    if (!file1 || !file2) {
+      alert('Vui lòng chọn cả hai tệp hình ảnh!');
       return;
     }
 
     setLoading(true);
     try {
-      const base64Image = await fileToBase64(imageFile);
+      const base64Data1 = await readFileAsBase64(file1);
+      const base64Data2 = await readFileAsBase64(file2);
 
-      const payload = {
-        version: 'fb9c8e3e2b39f584d93dffa9e6dda4b974abac7098f36883e251fc7b6e75bf01',
-        input: {
-          image: base64Image,
-          prompt: prompt,
-          mask: base64Image, // Mask tạm thời
-          num_outputs: 1,
-          num_inference_steps: 50,
-          guidance_scale: 7.5,
-        },
+      const requestData = {
+        cauHoi: 'Mặc cái áo này lên người này giúp tôi',
+        hinhAnh: [base64Data1, base64Data2],
       };
 
-      console.log('Sending payload to Replicate:', payload);
+      const response = await fetch('http://localhost:5261/api/Gemini/Response', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
 
-      let response;
-      try {
-        response = await fetch(REPLICATE_API_URL, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Token ${REPLICATE_API_KEY}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-      } catch (fetchError) {
-        throw new Error(`Không thể kết nối tới Replicate API: ${fetchError.message}. Có thể do CORS hoặc mạng. Vui lòng thử lại hoặc dùng proxy server.`);
+      const data = await response.json();
+
+      if (response.ok && data.responseCode === 201 && data.result) {
+        setOutputImage(`data:image/png;base64,${data.result}`);
+        setZoomOutput(1);
+      } else {
+        alert(data.errorMessage || 'Có lỗi xảy ra khi xử lý yêu cầu');
       }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const prediction = await response.json();
-      console.log('Prediction Response:', prediction);
-
-      if (!prediction.id) {
-        throw new Error('Không nhận được prediction ID từ Replicate');
-      }
-
-      const predictionId = prediction.id;
-
-      let result;
-      let attempts = 0;
-      const maxAttempts = 30;
-
-      do {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        let statusResponse;
-        try {
-          statusResponse = await fetch(`${REPLICATE_API_URL}/${predictionId}`, {
-            headers: {
-              'Authorization': `Token ${REPLICATE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-          });
-        } catch (fetchError) {
-          throw new Error(`Polling fetch failed: ${fetchError.message}`);
-        }
-
-        if (!statusResponse.ok) {
-          const errorText = await statusResponse.text();
-          throw new Error(`Polling error! status: ${statusResponse.status}, message: ${errorText}`);
-        }
-
-        result = await statusResponse.json();
-        console.log('Polling Result:', result);
-        attempts++;
-
-        if (attempts >= maxAttempts) {
-          throw new Error('Hết thời gian chờ kết quả từ Replicate');
-        }
-      } while (result.status !== 'succeeded' && result.status !== 'failed');
-
-      if (result.status === 'failed') {
-        throw new Error('Failed to generate image: ' + (result.error || 'Unknown error'));
-      }
-
-      if (!result.output || !result.output[0]) {
-        throw new Error('Không nhận được output từ Replicate');
-      }
-
-      setProcessedImage(result.output[0]);
-
     } catch (error) {
-      console.error('Lỗi khi xử lý:', error);
-      alert(`Lỗi xử lý ảnh: ${error.message}. Hiển thị ảnh gốc.`);
-      setProcessedImage(imageFile ? URL.createObjectURL(imageFile) : null);
+      console.error('Lỗi:', error);
+      alert('Có lỗi xảy ra khi gửi yêu cầu đến API');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = () => {
-    if (processedImage && downloadRef.current) {
-      downloadRef.current.href = processedImage;
-      downloadRef.current.download = 'processed_image.jpg';
-      downloadRef.current.click();
-    }
-  };
-
   return (
-    <div className="inpaint-container">
-      <h2>Inpaint với Stable Diffusion</h2>
-      <div>
-        <label>Chọn ảnh: </label>
-        <input type="file" accept="image/*" onChange={handleFileChange} />
+    <div style={styles.container}>
+      <div style={styles.headerRow}>
+        <button
+          onClick={() => setIsFormVisible(!isFormVisible)}
+          style={styles.toggleButton}
+        >
+          Mặc đồ thử bằng AI
+          {isFormVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
       </div>
-      <div>
-        <label>Mô tả: </label>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Nhập mô tả (ví dụ: 'Add a bird to the image')"
-          rows={4}
-          cols={50}
-        />
-      </div>
-      <button onClick={handleInpaint} disabled={loading}>
-        {loading ? 'Đang xử lý...' : 'Xử lý ảnh'}
-      </button>
-      {imageFile && (
-        <div>
-          <h3>Ảnh gốc:</h3>
-          <img src={URL.createObjectURL(imageFile)} alt="Original" style={{ maxWidth: '400px' }} />
-        </div>
-      )}
-      {processedImage && (
-        <div>
-          <h3>Kết quả:</h3>
-          <img
-            src={processedImage}
-            alt="Processed"
-            style={{ maxWidth: '400px' }}
-            onError={(e) => console.error('Lỗi tải ảnh:', e)}
-          />
-          <button onClick={handleDownload}>Tải về ảnh</button>
-          <a ref={downloadRef} style={{ display: 'none' }} />
-        </div>
+      {isFormVisible && (
+        <>
+          <div style={styles.inputRow}>
+            <div style={styles.inputColumn}>
+              <label style={styles.label}>Chọn tệp 1 (Người):</label>
+              <div
+                style={styles.dropZone}
+                onDrop={(e) => handleDrop(e, setFile1, setPreview1)}
+                onDragOver={handleDragOver}
+                onClick={() => handleClick(setFile1, setPreview1)}
+              >
+                {preview1 ? (
+                  <div style={styles.imageContainer}>
+                    <img
+                      src={preview1}
+                      alt="Preview 1"
+                      style={{ ...styles.image, transform: `scale(${zoom1})` }}
+                    />
+                    <button
+                      style={styles.removeButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFile1(null);
+                        setPreview1(null);
+                        setZoom1(1);
+                      }}
+                    >
+                      X
+                    </button>
+                    <div style={styles.zoomControls}>
+                      <button
+                        style={styles.zoomButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomIn(setZoom1);
+                        }}
+                      >
+                        +
+                      </button>
+                      <button
+                        style={styles.zoomButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomOut(setZoom1);
+                        }}
+                      >
+                        -
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={styles.imagePlaceholder}>Kéo thả hoặc nhấp để chọn ảnh</div>
+                )}
+              </div>
+            </div>
+            <div style={styles.inputColumn}>
+              <label style={styles.label}>Chọn tệp 2 (Áo):</label>
+              <div
+                style={styles.dropZone}
+                onDrop={(e) => handleDrop(e, setFile2, setPreview2)}
+                onDragOver={handleDragOver}
+                onClick={() => handleClick(setFile2, setPreview2)}
+              >
+                {preview2 ? (
+                  <div style={styles.imageContainer}>
+                    <img
+                      src={preview2}
+                      alt="Preview 2"
+                      style={{ ...styles.image, transform: `scale(${zoom2})` }}
+                    />
+                    <button
+                      style={styles.removeButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFile2(null);
+                        setPreview2(null);
+                        setZoom2(1);
+                      }}
+                    >
+                      X
+                    </button>
+                    <div style={styles.zoomControls}>
+                      <button
+                        style={styles.zoomButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomIn(setZoom2);
+                        }}
+                      >
+                        +
+                      </button>
+                      <button
+                        style={styles.zoomButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomOut(setZoom2);
+                        }}
+                      >
+                        -
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={styles.imagePlaceholder}>Kéo thả hoặc nhấp để chọn ảnh</div>
+                )}
+              </div>
+            </div>
+            <div style={styles.inputColumn}>
+              <label style={styles.label}>Kết quả:</label>
+              <div style={styles.dropZone}>
+                {loading ? (
+                  <div style={styles.imagePlaceholder}>Đang xử lý...</div>
+                ) : outputImage ? (
+                  <div style={styles.imageContainer}>
+                    <img
+                      src={outputImage}
+                      alt="Processed Output"
+                      style={{ ...styles.image, transform: `scale(${zoomOutput})` }}
+                    />
+                    <div style={styles.zoomControls}>
+                      <button
+                        style={styles.zoomButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomIn(setZoomOutput);
+                        }}
+                      >
+                        +
+                      </button>
+                      <button
+                        style={styles.zoomButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleZoomOut(setZoomOutput);
+                        }}
+                      >
+                        -
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={styles.imagePlaceholder}>Chưa có kết quả</div>
+                )}
+              </div>
+            </div>
+          </div>
+          <button onClick={handleSubmit} disabled={loading} style={styles.button}>
+            {loading ? 'Đang xử lý...' : 'Mặc đồ thử'}
+          </button>
+        </>
       )}
     </div>
   );
 };
 
-export default Inpaint;
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    maxWidth: '1400px',
+    margin: '50px auto',
+    padding: '20px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    backgroundColor: '#f9f9f9',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+  },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
+  toggleButton: {
+    padding: '8px 12px',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
+    backgroundColor: '#fff',
+    fontSize: '16px',
+    cursor: 'pointer',
+    outline: 'none',
+    transition: 'border-color 0.3s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  inputRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '20px',
+  },
+  inputColumn: {
+    flex: 1,
+    margin: '0 10px',
+  },
+  label: {
+    display: 'block',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    marginBottom: '5px',
+  },
+  dropZone: {
+    width: '100%',
+    height: '400px',
+    border: '2px dashed #ccc',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fafafa',
+    cursor: 'pointer',
+    overflow: 'hidden',
+  },
+  imageContainer: {
+    position: 'relative',
+    display: 'inline-block',
+  },
+  image: {
+    width: '100%',
+    maxWidth: '300px',
+    height: '350px',
+    objectFit: 'contain',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    backgroundColor: '#fff',
+    transition: 'transform 0.2s ease-in-out',
+  },
+  imagePlaceholder: {
+    width: '300px',
+    height: '350px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px dashed #ddd',
+    borderRadius: '4px',
+    backgroundColor: '#f0f0f0',
+    color: '#666',
+    fontSize: '16px',
+    textAlign: 'center',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    backgroundColor: 'red',
+    color: 'white',
+    border: 'none',
+    borderRadius: '50%',
+    width: '24px',
+    height: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: 'bold',
+  },
+  zoomControls: {
+    position: 'absolute',
+    bottom: '10px',
+    right: '10px',
+    display: 'flex',
+    gap: '5px',
+  },
+  zoomButton: {
+    backgroundColor: '#333',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    width: '30px',
+    height: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '18px',
+  },
+  button: {
+    width: '100%',
+    padding: '10px',
+    background: 'linear-gradient(to right, #D8BFD8, #C8A2C8)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    transition: 'background 0.3s',
+  },
+};
+
+export default InpaintForm;

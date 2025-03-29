@@ -4,8 +4,9 @@ import { cn } from "@/lib/utils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Heart, ShoppingBag, Star, Trash2 } from "lucide-react";
-import Swal from "sweetalert2";
-
+import Swal from "sweetalert2"; // Thêm import SweetAlert2
+import InpaintForm from "./Inpaint";
+// Component thông báo tùy chỉnh
 const Notification = ({ message, type, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 3000);
@@ -554,6 +555,8 @@ const ProductDetail = () => {
               </div>
             </div>
           </div>
+<InpaintForm />
+          {/* Comment Section */}
           <div className="mt-12">
             <h2 className="text-2xl font-medium mb-6">Bình Luận & Đánh Giá</h2>
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
