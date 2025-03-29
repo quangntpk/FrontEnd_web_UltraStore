@@ -17,6 +17,7 @@ import Settings from "./pages/Settings";
 import Combos from "./pages/Combos.tsx";
 import ThuongHieu from "./pages/ThuongHieu.tsx";
 import LoaiSanPham from "./pages/LoaiSanPham.tsx";
+import ProfileAdmin from "./pages/ProfileAdmin.tsx";
 import Login from "./pages/Login";
 import Giaodien from "./pages/Giaodien";
 // Create placeholder pages for the new routes
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/ProfileAdmin" element={<ProfileAdmin/>} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/inventory" element={<Inventory />} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Eye, EyeOff, User, UserPlus, Mail } from "lucide-react";
 import axios from "axios";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import ReCAPTCHA from "react-google-recaptcha";
+
 const Register = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,10 +21,19 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [showOtpForm, setShowOtpForm] = useState(false);
+  const [otp, setOtp] = useState("");
   const {
     toast
   } = useToast();
   const navigate = useNavigate();
+
+  const handleRecaptchaChange = useCallback((value: string | null) => {
+    setRecaptchaToken(value);
+    console.log("reCAPTCHA value:", value);
+  }, []);
+
   const validateForm = () => {
     if (!fullName.trim()) {
       toast({
@@ -111,6 +122,26 @@ const Register = () => {
       return;
     }
 
+  if (!recaptchaToken) {
+      toast({
+        variant: "destructive",
+        title: "Vui lòng xác minh reCAPTCHA ⚠️",
+        description: "Bạn cần xác minh rằng bạn không phải là bot.",
+        duration: 3000,
+        className: "bg-red-500 text-white border border-red-700 shadow-lg p-4 rounded-md",
+        action: (
+          <Button
+            variant="outline"
+            className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+          >
+            Đóng
+          </Button>
+        ),
+      });
+      setIsLoading(false);
+      return;
+    }
+
  // Kiểm tra đồng ý điều khoản
  if (!agreeToTerms) {
   toast({
@@ -140,12 +171,10 @@ try {
     matKhau: password,
   });
 
-  const { message, token } = response.data;
-  console.log("Response data:", response.data); // Kiểm tra dữ liệu API
-  const toastId = toast({
-    title: "Đăng ký thành công 🎉",
-    description: message ? `${message} - Chào mừng bạn đến với Minimalist!` : "Chào mừng bạn đến với Minimalist!",
-    duration: 3000,
+  toast({
+    title: "Vui lòng kiểm tra email 🎉",
+    description: "Để kích hoạt tài khoản của bạn",
+    duration: 5000,
     className: "bg-green-500 text-white border border-green-700 shadow-lg p-4 rounded-md",
     action: (
       <Button
@@ -156,13 +185,11 @@ try {
       </Button>
     ),
   });
-  // Lưu token vào localStorage (nếu backend trả về token)
-  if (token) {
-    localStorage.setItem("token", token);
-  }
-  navigate("/login");
+
+  // Hiển thị form nhập OTP
+  setShowOtpForm(true);
 } catch (error) {
-  const toastId = toast({
+  toast({
     variant: "destructive",
     title: "Đăng ký thất bại ⚠️",
     description: error.response?.data?.message || "Vui lòng kiểm tra lại thông tin.",
@@ -181,6 +208,58 @@ try {
   setIsLoading(false);
 }
 };
+const handleVerifyOtp = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+
+  try {
+    const response = await axios.post("http://localhost:5261/api/XacThuc/VerifyOtpActivate", {
+      email,
+      otp,
+    });
+
+    toast({
+      title: "Kích hoạt tài khoản thành công 🎉",
+      description: response.data.message,
+      duration: 5000,
+      className: "bg-green-500 text-white border border-green-700 shadow-lg p-4 rounded-md",
+      action: (
+        <Button
+          variant="outline"
+          className="bg-white text-green-500 hover:bg-green-100 border-green-500"
+        >
+          Đóng
+        </Button>
+      ),
+    });
+
+    // Chuyển hướng đến trang đăng nhập
+    navigate("/login");
+  } catch (error) {
+    toast({
+      variant: "destructive",
+      title: "Xác minh thất bại ⚠️",
+      description: error.response?.data?.message || "Vui lòng kiểm tra lại mã OTP.",
+      duration: 3000,
+      className: "bg-red-500 text-white border border-red-700 shadow-lg p-4 rounded-md",
+      action: (
+        <Button
+          variant="outline"
+          className="bg-white text-red-500 hover:bg-red-100 border-red-500"
+        >
+          Đóng
+        </Button>
+      ),
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+  // Lưu token vào localStorage (nếu backend trả về token)
+  // if (token) {
+  //   localStorage.setItem("token", token);
+  // }
+
   return (
   <div className="min-h-screen flex flex-col bg-[#eaf2f5]/[0.31] rounded-3xl">
       <Navigation />
@@ -195,6 +274,7 @@ try {
           </div>
 
           <div className="colorful-card p-6 rounded-lg shadow-lg">
+          {!showOtpForm ? (
             <form className="space-y-6" onSubmit={handleRegister}>
               <div className="space-y-2">
                 <Label htmlFor="fullName">Họ và tên</Label>
@@ -254,13 +334,43 @@ try {
                 </label>
               </div>
 
-              <Button type="submit" className="w-full gradient-bg" disabled={isLoading}>
-                {isLoading ? "Đang xử lý..." : <>
-                    <UserPlus className="mr-2 h-4 w-4" /> Đăng ký
-                  </>}
-              </Button>
-            </form>
+              <div className="space-y-2">
+                <ReCAPTCHA
+                  sitekey="6LdnYnMqAAAAAIqMXz4csz5Zw_kR3ARtWht9wjY2"
+                  onChange={handleRecaptchaChange}
+                />
+              </div>
 
+              <Button type="submit" className="w-full gradient-bg" disabled={isLoading}>
+                  {isLoading ? (
+                    "Đang xử lý..."
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" /> Đăng ký
+                    </>
+                  )}
+                </Button>
+              </form>
+          ) : (
+              <form className="space-y-6" onSubmit={handleVerifyOtp}>
+                <div className="space-y-2">
+                  <Label htmlFor="otp">Nhập mã OTP</Label>
+                  <Input
+                    id="otp"
+                    placeholder="Nhập mã OTP từ email"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" className="w-full gradient-bg" disabled={isLoading}>
+                  {isLoading ? "Đang xử lý..." : "Xác minh OTP"}
+                </Button>
+              </form>
+            )}
+            {!showOtpForm && (      
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -293,6 +403,7 @@ try {
                 </Button>
               </div>
             </div>
+            )}
           </div>
 
           <p className="text-center text-sm text-muted-foreground">

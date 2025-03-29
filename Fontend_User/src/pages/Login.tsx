@@ -18,7 +18,6 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Xử lý đăng nhập bằng tài khoản/mật khẩu
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -31,12 +30,15 @@ const Login = () => {
 
       const { message, user, token, redirectUrl } = response.data;
 
-      if (user && user.maNguoiDung) {
-        localStorage.setItem("userId", user.maNguoiDung);
+      // Chỉ lưu vào localStorage nếu là user (vaiTro != 1)
+      if (user && user.vaiTro !== 1) {
         localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-
-        // Phát sự kiện tùy chỉnh để thông báo rằng localStorage đã thay đổi
+        localStorage.setItem("userId", user.maNguoiDung || "");
+        localStorage.setItem("user", JSON.stringify({
+          fullName: user.hoTen || "",
+          email: user.email || "",
+          role: user.vaiTro || "",
+        }));
         window.dispatchEvent(new Event("storageChange"));
       }
 
@@ -46,17 +48,20 @@ const Login = () => {
         duration: 3000,
         className: "bg-green-500 text-white border border-green-700 shadow-lg",
         action: (
-          <Button
-            variant="outline"
-            className="bg-white text-green-500 hover:bg-green-100 border-green-500"
-          >
+          <Button variant="outline" className="bg-white text-green-500 hover:bg-green-100 border-green-500">
             Đóng
           </Button>
         ),
       });
 
       if (redirectUrl && redirectUrl !== window.location.origin) {
-        window.location.href = `${redirectUrl}?token=${token}`;
+        // Truyền dữ liệu qua query string cho admin
+        const userData = encodeURIComponent(JSON.stringify({
+          fullName: user?.hoTen || "",
+          email: user?.email || "",
+          role: user?.vaiTro || "",
+        }));
+        window.location.href = `${redirectUrl}?token=${token}&userId=${user?.maNguoiDung || ""}&user=${userData}`;
       } else {
         navigate("/");
       }
@@ -68,10 +73,7 @@ const Login = () => {
         duration: 3000,
         className: "bg-red-500 text-white border border-red-700 shadow-lg",
         action: (
-          <Button
-            variant="outline"
-            className="bg-white text-red-500 hover:bg-red-100 border-red-500"
-          >
+          <Button variant="outline" className="bg-white text-red-500 hover:bg-red-100 border-red-500">
             Đóng
           </Button>
         ),
@@ -80,7 +82,6 @@ const Login = () => {
       setIsLoading(false);
     }
   };
-
   // Xử lý đăng nhập với Google
   const handleGoogleLogin = async () => {
     try {
