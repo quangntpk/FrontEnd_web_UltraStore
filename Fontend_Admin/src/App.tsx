@@ -20,6 +20,7 @@ import LoaiSanPham from "./pages/LoaiSanPham.tsx";
 import ProfileAdmin from "./pages/ProfileAdmin.tsx";
 import Login from "./pages/Login";
 import Giaodien from "./pages/Giaodien";
+import KichThuoc from "./pages/KichThuoc.tsx";
 // Create placeholder pages for the new routes
 const Payments = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Payments</h1><p>Payments management page coming soon.</p></div>;
 const Marketing = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Marketing</h1><p>Marketing management page coming soon.</p></div>;
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/loaisanpham" element={<LoaiSanPham/>} />
             <Route path="/thuonghieu" element={<ThuongHieu/>} />
             <Route path="/giaodien" element={<Giaodien/>} />
+            <Route path="/kichthuoc" element={<KichThuoc/>} />
             {/* New routes */}
             <Route path="/payments" element={<Payments />} />
             <Route path="/marketing" element={<Marketing />} />
