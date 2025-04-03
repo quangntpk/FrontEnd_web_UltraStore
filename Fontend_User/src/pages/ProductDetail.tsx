@@ -228,7 +228,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     const userId = localStorage.getItem("userId");
-
+    console.log("userId:", userId);
     if (!userId) {
       Swal.fire({
         title: "Vui lòng đăng nhập!",
@@ -246,21 +246,16 @@ const ProductDetail = () => {
       return;
     }
 
-    const userData = JSON.parse(localStorage.getItem("user"));
-    const maNguoiDung = userData?.maNguoiDung;
+    const userData = localStorage.getItem("userId");
+    const maNguoiDung = userData;
     const selectedProduct = products[selectedColorIndex];
     const selectedSize = selectedProduct.sizes[selectedSizeIndex];
 
-    if (!maNguoiDung) {
-      showNotification("Vui lòng đăng nhập trước khi thêm vào giỏ hàng!", "error");
-      return;
-    }
-
-    // Validate số lượng
-    if (quantity > selectedSize.quantity) {
-      showNotification(`Số lượng vượt quá tồn kho! Chỉ còn ${selectedSize.quantity} sản phẩm.`, "error");
-      return;
-    }
+    // // Validate số lượng
+    // if (quantity > selectedSize.quantity) {
+    //   showNotification(`Số lượng vượt quá tồn kho! Chỉ còn ${selectedSize.quantity} sản phẩm.`, "error");
+    //   return;
+    // }
 
     const cartData = {
       IDNguoiDung: maNguoiDung,
@@ -269,8 +264,8 @@ const ProductDetail = () => {
       KichThuoc: selectedSize.size,
       SoLuong: quantity
     };
-
     try {
+
       const response = await fetch("http://localhost:5261/api/Cart/ThemSanPhamVaoGioHang", {
         method: "POST",
         headers: {

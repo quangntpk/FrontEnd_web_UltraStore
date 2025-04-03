@@ -66,6 +66,7 @@ const CartPage = () => {
   useEffect(() => {
     const fetchCartData = async () => {
       const userId = localStorage.getItem("userId");
+      console.log(userId)
       if (!userId) {
         Swal.fire({
           title: "Vui lòng đăng nhập!",
@@ -86,7 +87,7 @@ const CartPage = () => {
       try {
         const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userId}`);
         const data = await response.json();
-
+        console.log(data)
         const processedCartItems = data.ctghSanPhamView.map((item: any) => ({
           ...item,
           hinhAnh: item.hinhAnh.startsWith("data:image")

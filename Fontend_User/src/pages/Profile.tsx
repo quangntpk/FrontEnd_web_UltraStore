@@ -203,13 +203,13 @@ const Profile = () => {
       }));
 
       toast({
-        title: (
+        title: "Cập nhật thành công",
+        description: (
           <div className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
-            <span>Cập nhật thành công</span>
+            <span>Thông tin cá nhân của bạn đã được cập nhật thành công!</span>
           </div>
         ),
-        description: "Thông tin cá nhân của bạn đã được cập nhật thành công!",
         className: "bg-green-100 border-green-500 text-green-800",
         duration: 3000,
       });
@@ -283,13 +283,13 @@ const Profile = () => {
       );
 
       toast({
-        title: (
+        title: "Cập nhật thành công",
+        description: (
           <div className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
-            <span>Cập nhật thành công</span>
+            <span>Mật khẩu của bạn đã được thay đổi thành công!</span>
           </div>
         ),
-        description: "Mật khẩu của bạn đã được thay đổi thành công!",
         className: "bg-green-100 border-green-500 text-green-800",
         duration: 3000,
       });

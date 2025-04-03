@@ -303,7 +303,7 @@ const SupportChat: React.FC = () => {
         >
           {/* Header */}
           <div className="p-3 bg-[#E8A8FF] text-black rounded-t-lg flex items-center gap-2">
-            <h3 className="font-semibold">Hỗ trợ Tự Động</h3>
+            <h3 className="font-semibold">UltraStore</h3>
           </div>
 
           {/* Nội dung chat */}
