@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 
+// Định nghĩa kiểu dữ liệu cho Voucher
 interface Voucher {
   maVoucher: number;
   tenVoucher: string;
@@ -19,6 +20,7 @@ interface Voucher {
   coupons?: { id: number; maNhap: string; trangThai: number }[];
 }
 
+// Định nghĩa cấu trúc cơ sở dữ liệu IndexedDB
 interface MyDB extends DBSchema {
   userData: {
     key: string;
@@ -30,6 +32,7 @@ interface MyDB extends DBSchema {
 }
 
 const Voucher = () => {
+  // Khai báo các state
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,44 +43,58 @@ const Voucher = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [db, setDb] = useState<IDBPDatabase<MyDB> | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
 
-  const SPIN_COOLDOWN = 24 * 60 * 60 * 1000; // 1 ngày (24 tiếng)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null); // Sử dụng useRef để lưu interval
+  const SPIN_COOLDOWN = 24 * 60 * 60 * 1000; // 24 tiếng (mili giây)
 
+  // Khởi tạo IndexedDB khi component được mount
   useEffect(() => {
     const initDB = async () => {
-      const database = await openDB<MyDB>("VoucherDB", 1, {
-        upgrade(db) {
-          db.createObjectStore("userData");
-        },
-      });
-      setDb(database);
+      try {
+        const database = await openDB<MyDB>("VoucherDB", 1, {
+          upgrade(db) {
+            db.createObjectStore("userData");
+          },
+        });
+        setDb(database);
+      } catch (err) {
+        console.error("Không thể khởi tạo IndexedDB:", err);
+      }
     };
     initDB();
   }, []);
 
+  // Tải dữ liệu người dùng và danh sách voucher từ API
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user") || "null");
     setIsLoggedIn(!!userData);
     const currentUserId = userData?.maNguoiDung || null;
     setUserId(currentUserId);
 
+    // Tải dữ liệu từ IndexedDB
     const loadDataFromDB = async () => {
       if (!db || !currentUserId) return;
 
-      const tx = db.transaction("userData", "readonly");
-      const store = tx.objectStore("userData");
-
-      const storedData = await store.get(currentUserId);
-      if (storedData) {
-        if (storedData.lastSpinTime) {
-          setLastSpinTime(storedData.lastSpinTime);
+      try {
+        const tx = db.transaction("userData", "readonly");
+        const store = tx.objectStore("userData");
+        const storedData = await store.get(currentUserId);
+        if (storedData) {
+          if (storedData.lastSpinTime) {
+            setLastSpinTime(storedData.lastSpinTime);
+            setTimeLeft(getTimeUntilNextSpin(storedData.lastSpinTime));
+          }
+          if (storedData.selectedVoucher) {
+            setSelectedVoucher(storedData.selectedVoucher);
+          }
         }
-        if (storedData.selectedVoucher) {
-          setSelectedVoucher(storedData.selectedVoucher);
-        }
+      } catch (err) {
+        console.error("Lỗi khi tải dữ liệu từ IndexedDB:", err);
       }
     };
 
+    // Lấy danh sách voucher từ API
     const fetchVouchers = async () => {
       try {
         const response = await fetch("http://localhost:5261/api/Voucher", {
@@ -94,6 +111,7 @@ const Voucher = () => {
         const data: Voucher[] = await response.json();
         const currentDate = new Date();
 
+        // Lọc các voucher còn hiệu lực
         const validVouchers = data.filter((voucher) => {
           const startDate = new Date(voucher.ngayBatDau);
           const endDate = new Date(voucher.ngayKetThuc);
@@ -122,6 +140,7 @@ const Voucher = () => {
       fetchVouchers();
     }
 
+    // Xử lý khi localStorage thay đổi (đăng xuất hoặc đổi người dùng)
     const handleStorageChange = () => {
       const updatedUserData = JSON.parse(localStorage.getItem("user") || "null");
       if (!updatedUserData) {
@@ -139,6 +158,37 @@ const Voucher = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [db, userId]);
 
+  // Cập nhật thời gian thực cho đếm ngược
+  useEffect(() => {
+    if (!lastSpinTime) {
+      setTimeLeft(0);
+      return;
+    }
+
+    const updateTimeLeft = () => {
+      const currentTime = Date.now();
+      const timeSinceLastSpin = currentTime - lastSpinTime;
+      const remainingTime = Math.max(0, SPIN_COOLDOWN - timeSinceLastSpin);
+      setTimeLeft(remainingTime);
+
+      if (remainingTime === 0 && intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    updateTimeLeft(); // Cập nhật ngay lập tức
+    intervalRef.current = setInterval(updateTimeLeft, 1000); // Cập nhật mỗi giây
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [lastSpinTime]);
+
+  // Kiểm tra xem người dùng có thể quay hay không
   const canSpin = () => {
     if (!isLoggedIn) return false;
     if (!lastSpinTime) return true;
@@ -146,13 +196,14 @@ const Voucher = () => {
     return currentTime - lastSpinTime >= SPIN_COOLDOWN;
   };
 
-  const getTimeUntilNextSpin = () => {
-    if (!lastSpinTime) return 0;
+  // Tính thời gian còn lại để quay lần tiếp theo
+  const getTimeUntilNextSpin = (spinTime: number = lastSpinTime || 0) => {
     const currentTime = Date.now();
-    const timeSinceLastSpin = currentTime - lastSpinTime;
+    const timeSinceLastSpin = currentTime - spinTime;
     return Math.max(0, SPIN_COOLDOWN - timeSinceLastSpin);
   };
 
+  // Định dạng thời gian còn lại thành chuỗi
   const formatTimeLeft = (timeLeft: number) => {
     const hours = Math.floor(timeLeft / (1000 * 60 * 60));
     const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
@@ -160,6 +211,7 @@ const Voucher = () => {
     return `${hours} giờ ${minutes} phút ${seconds} giây`;
   };
 
+  // Xử lý sự kiện quay vòng quay
   const handleSpin = async () => {
     if (isSpinning || vouchers.length === 0 || !userId || !db) return;
 
@@ -198,16 +250,20 @@ const Voucher = () => {
       const currentTime = Date.now();
       setLastSpinTime(currentTime);
 
-      const tx = db.transaction("userData", "readwrite");
-      const store = tx.objectStore("userData");
-      await store.put(
-        {
-          lastSpinTime: currentTime,
-          selectedVoucher: selected,
-        },
-        userId
-      );
-      await tx.done;
+      try {
+        const tx = db.transaction("userData", "readwrite");
+        const store = tx.objectStore("userData");
+        await store.put(
+          {
+            lastSpinTime: currentTime,
+            selectedVoucher: selected,
+          },
+          userId
+        );
+        await tx.done;
+      } catch (err) {
+        console.error("Lỗi khi lưu vào IndexedDB:", err);
+      }
 
       setIsSpinning(false);
       toast({
@@ -217,6 +273,7 @@ const Voucher = () => {
     }, 2000);
   };
 
+  // Xử lý khi người dùng chọn sử dụng voucher
   const handleUseVoucher = () => {
     if (selectedVoucher) {
       toast({
@@ -226,6 +283,7 @@ const Voucher = () => {
     }
   };
 
+  // Hiển thị giao diện khi đang tải
   if (loading) {
     return (
       <div className="py-20 px-6 flex items-center justify-center min-h-screen">
@@ -234,16 +292,16 @@ const Voucher = () => {
     );
   }
 
+  // Hiển thị khi có lỗi hoặc không có voucher hợp lệ
   if (error || vouchers.length === 0) {
     return (
       <div className="py-20 px-6 flex items-center justify-center min-h-screen">
-        <p>{error || "Không có voucher nào còn hiệu lực để quay."}</p>
+        <p>{error || "Chưa có voucher nào dành cho bạn."}</p>
       </div>
     );
   }
 
-  const timeLeft = getTimeUntilNextSpin();
-
+  // Giao diện chính của component
   return (
     <section id="voucher" className="py-20 px-6" style={{ marginTop: "40px" }}>
       <Navigation />
@@ -302,13 +360,13 @@ const Voucher = () => {
             <div
               className="absolute w-0 h-0"
               style={{
-                top: "-20px", // Đặt kim phía trên vòng quay
+                top: "-20px",
                 left: "50%",
                 transform: "translateX(-50%)",
                 borderLeft: "10px solid transparent",
                 borderRight: "10px solid transparent",
-                borderTop: "30px solid #FF0000", // Màu đỏ cho kim, có thể thay đổi
-                zIndex: 10, // Đảm bảo kim nằm trên vòng quay
+                borderTop: "30px solid #FF0000",
+                zIndex: 10,
               }}
             />
           </div>
@@ -334,9 +392,15 @@ const Voucher = () => {
             {selectedVoucher ? (
               <div
                 className="bg-white border rounded-xl p-6 shadow-md w-full max-w-md"
-                style={{ borderColor: "#9B59B6", boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}
+                style={{
+                  borderColor: "#9B59B6",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                }}
               >
-                <h3 className="text-xl font-semibold mb-2" style={{ color: "#9B59B6" }}>
+                <h3
+                  className="text-xl font-semibold mb-2"
+                  style={{ color: "#9B59B6" }}
+                >
                   Chúc mừng bạn!
                 </h3>
                 {selectedVoucher.hinhAnh && (
@@ -349,7 +413,10 @@ const Voucher = () => {
                   </div>
                 )}
                 <p className="text-muted-foreground mb-2">
-                  Tên: <span className="font-medium">{selectedVoucher.tenVoucher}</span>
+                  Tên:{" "}
+                  <span className="font-medium">
+                    {selectedVoucher.tenVoucher}
+                  </span>
                 </p>
                 <p className="text-muted-foreground mb-2">
                   <span style={{ color: "#9B59B6", fontWeight: "500" }}>
@@ -358,43 +425,59 @@ const Voucher = () => {
                 </p>
                 {selectedVoucher.moTa && (
                   <p className="text-muted-foreground mb-2">
-                    Mô tả: <span className="font-medium">{selectedVoucher.moTa}</span>
+                    Mô tả:{" "}
+                    <span className="font-medium">{selectedVoucher.moTa}</span>
                   </p>
                 )}
                 <p className="text-muted-foreground mb-2">
-                  Hiệu lực từ: {new Date(selectedVoucher.ngayBatDau).toLocaleDateString()} -{" "}
+                  Hiệu lực từ:{" "}
+                  {new Date(selectedVoucher.ngayBatDau).toLocaleDateString()} -{" "}
                   {new Date(selectedVoucher.ngayKetThuc).toLocaleDateString()}
                 </p>
                 {selectedVoucher.dieuKien && (
                   <p className="text-muted-foreground mb-2">
                     Điều kiện mua trên:{" "}
-                    <span className="font-medium">{selectedVoucher.dieuKien.toLocaleString("vi-VN")} VND</span>
+                    <span className="font-medium">
+                      {selectedVoucher.dieuKien.toLocaleString("vi-VN")} VND
+                    </span>
                   </p>
                 )}
-                {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-muted-foreground font-medium">Mã nhập cho bạn:</p>
-                    <ul className="list-disc pl-5">
-                      {selectedVoucher.coupons.slice(0, 2).map((coupon) => (
-                        <li
-                          key={coupon.id}
-                          className="text-gray-800"
-                          style={{
-                            textDecoration: coupon.trangThai === 1 ? "line-through" : "none",
-                            color: coupon.trangThai === 1 ? "#999" : "#333",
-                          }}
-                        >
-                          {coupon.maNhap}
-                          {coupon.trangThai === 1 && (
-                            <span style={{ color: "#999", marginLeft: "5px", fontSize: "12px" }}>
-                              (Hết mã)
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {selectedVoucher.coupons &&
+                  selectedVoucher.coupons.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-muted-foreground font-medium">
+                        Mã nhập cho bạn:
+                      </p>
+                      <ul className="list-disc pl-5">
+                        {selectedVoucher.coupons.slice(0, 2).map((coupon) => (
+                          <li
+                            key={coupon.id}
+                            className="text-gray-800"
+                            style={{
+                              textDecoration:
+                                coupon.trangThai === 1
+                                  ? "line-through"
+                                  : "none",
+                              color: coupon.trangThai === 1 ? "#999" : "#333",
+                            }}
+                          >
+                            {coupon.maNhap}
+                            {coupon.trangThai === 1 && (
+                              <span
+                                style={{
+                                  color: "#999",
+                                  marginLeft: "5px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                (Hết mã)
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 <Button
                   onClick={handleUseVoucher}
                   className="w-full mt-4"
@@ -410,10 +493,15 @@ const Voucher = () => {
             ) : (
               <div
                 className="bg-white border rounded-xl p-6 shadow-md w-full max-w-md text-center"
-                style={{ borderColor: "#9B59B6", boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}
+                style={{
+                  borderColor: "#9B59B6",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                }}
               >
                 <p className="text-muted-foreground">
-                  {isLoggedIn ? "Quay để nhận voucher nhé!" : "Vui lòng đăng nhập để quay!"}
+                  {isLoggedIn
+                    ? "Quay để nhận voucher nhé!"
+                    : "Vui lòng đăng nhập để quay!"}
                 </p>
               </div>
             )}
