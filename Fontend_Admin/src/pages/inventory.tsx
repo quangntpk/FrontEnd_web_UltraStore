@@ -41,7 +41,6 @@ import {
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
-// Define the Comment type based on your API response
 interface Comment {
   maBinhLuan: number;
   maSanPham?: number;
@@ -51,11 +50,11 @@ interface Comment {
   noiDungBinhLuan?: string;
   soTimBinhLuan?: number;
   danhGia?: number;
-  trangThai: number; // 0: Chưa duyệt, 1: Đã duyệt
+  trangThai: number;
   ngayBinhLuan?: string;
+  hinhAnh?: string;
 }
 
-// Hàm định dạng ngày giờ
 const formatDateTime = (dateString?: string): string => {
   if (!dateString) return "Ngày không hợp lệ";
   const date = new Date(dateString);
@@ -78,14 +77,15 @@ const Comments = () => {
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5261/api/Comment/list");
+      const response = await fetch("http://localhost:5261/api/Comment/list"); // Cập nhật URL đúng
       if (!response.ok) {
-        throw new Error('Không thể lấy dữ liệu bình luận');
+        throw new Error(`Không thể lấy dữ liệu bình luận: ${response.status} ${response.statusText}`);
       }
       const data: Comment[] = await response.json();
       setComments(data);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách bình luận:', error);
+      toast.error("Không thể tải danh sách bình luận.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ const Comments = () => {
     if (!commentToDelete) return;
 
     try {
-      const response = await fetch(`http://localhost:5261/api/comment/delete/${commentToDelete.maBinhLuan}`, {
+      const response = await fetch(`http://localhost:5261/api/Comment/delete/${commentToDelete.maBinhLuan}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
@@ -113,7 +113,7 @@ const Comments = () => {
 
   const handleApproveComment = async (comment: Comment) => {
     try {
-      const response = await fetch(`http://localhost:5261/api/comment/approve/${comment.maBinhLuan}`, {
+      const response = await fetch(`http://localhost:5261/api/Comment/approve/${comment.maBinhLuan}`, {
         method: 'PUT',
       });
       if (!response.ok) {
@@ -131,7 +131,7 @@ const Comments = () => {
 
   const handleUnapproveComment = async (comment: Comment) => {
     try {
-      const response = await fetch(`http://localhost:5261/api/comment/unapprove/${comment.maBinhLuan}`, {
+      const response = await fetch(`http://localhost:5261/api/Comment/unapprove/${comment.maBinhLuan}`, {
         method: 'PUT',
       });
       if (!response.ok) {
@@ -219,7 +219,8 @@ const Comments = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Tên Sản Phẩm</TableHead>
+                  <TableHead>Hình Ảnh</TableHead>
+                  {/* <TableHead>Tên Sản Phẩm</TableHead> */}
                   <TableHead>Họ Tên</TableHead>
                   <TableHead>Nội Dung</TableHead>
                   <TableHead>Trạng Thái</TableHead>
@@ -238,7 +239,14 @@ const Comments = () => {
                   currentComments.map((item) => (
                     <TableRow key={item.maBinhLuan} className="hover:bg-muted/50">
                       <TableCell>{item.maBinhLuan}</TableCell>
-                      <TableCell>{item.tenSanPham}</TableCell>
+                      <TableCell>
+                        <img
+                          src={item.hinhAnh || "https://via.placeholder.com/50"}
+                          alt={item.hoTen || "Avatar"}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      </TableCell>
+                      {/* <TableCell>{item.tenSanPham}</TableCell> */}
                       <TableCell>{item.hoTen}</TableCell>
                       <TableCell>{item.noiDungBinhLuan}</TableCell>
                       <TableCell>
@@ -324,7 +332,6 @@ const Comments = () => {
         </CardContent>
       </Card>
 
-      {/* Modal xác nhận xóa */}
       <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
         <DialogContent>
           <DialogHeader>
@@ -344,7 +351,6 @@ const Comments = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal chi tiết bình luận */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
         <DialogContent className="p-6 max-w-3xl w-full">
           <DialogHeader>
@@ -352,6 +358,17 @@ const Comments = () => {
           </DialogHeader>
           {selectedComment && (
             <div className="grid grid-cols-2 gap-6 mt-4">
+              <div className="col-span-2 flex items-center gap-4">
+                <img
+                  src={selectedComment.hinhAnh || "https://via.placeholder.com/50"}
+                  alt={selectedComment.hoTen || "Avatar"}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+                <div>
+                  <label className="block text-sm font-medium">Họ Tên</label>
+                  <Input value={selectedComment.hoTen || "Chưa cập nhật"} disabled />
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium">ID Bình Luận</label>
                 <Input value={selectedComment.maBinhLuan || "Chưa cập nhật"} disabled />
@@ -367,10 +384,6 @@ const Comments = () => {
               <div>
                 <label className="block text-sm font-medium">Mã Người Dùng</label>
                 <Input value={selectedComment.maNguoiDung || "Chưa cập nhật"} disabled />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Họ Tên</label>
-                <Input value={selectedComment.hoTen || "Chưa cập nhật"} disabled />
               </div>
               <div>
                 <label className="block text-sm font-medium">Nội Dung</label>

@@ -24,6 +24,7 @@ import ComboDetail from "./pages/ComboDetail";
 import SupportChat from "./components/SupportChat"; // Import component SupportChat
 import ComboListing from "./pages/ComboListing";
 import DiaChi from "./pages/DiaChi";
+import Comment from "./pages/Comment"; 
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -133,6 +134,7 @@ const App = () => (
           <Route path="/inpaint" element={<Inpaint />} />
           <Route path="/combo" element={<ComboListing />} />
           <Route path="/DiaChi" element={<DiaChi />} />
+          <Route path="/Comment" element={<Comment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />

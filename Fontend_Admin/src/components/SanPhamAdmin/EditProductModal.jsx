@@ -269,7 +269,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                   <label className="block mb-1 font-medium">Loại Sản Phẩm</label>
                   <select
                     value={loaiSanPham}
-                    onChange={(e) => setLoaiSanPham(e.target.value)}
+                    onChange={(e) => e.preventDefault()}
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="">Chọn loại sản phẩm</option>

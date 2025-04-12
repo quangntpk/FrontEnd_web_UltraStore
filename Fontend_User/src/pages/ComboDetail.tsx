@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 import Swal from "sweetalert2";
 
 const ComboDetail = () => {
@@ -13,10 +13,12 @@ const ComboDetail = () => {
   const [selections, setSelections] = useState({});
   const [comboQuantity, setComboQuantity] = useState(1);
   const [selectedImages, setSelectedImages] = useState({});
-  const [sizeQuantities, setSizeQuantities] = useState({}); // Lưu kích thước và số lượng từ API mới
+  const [sizeQuantities, setSizeQuantities] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [colorSelected, setColorSelected] = useState({});
+  const [isLiked, setIsLiked] = useState(false); // Thêm trạng thái yêu thích
+  const [likedId, setLikedId] = useState(null); // Lưu ID yêu thích
 
   useEffect(() => {
     const fetchCombo = async () => {
@@ -42,13 +44,13 @@ const ComboDetail = () => {
           price: comboData.gia,
           image: `data:image/jpeg;base64,${comboData.hinhAnh}`,
           quantity: comboData.soLuong,
-          products: comboData.sanPhams.map(product => ({
+          products: comboData.sanPhams.map((product) => ({
             id: product.idSanPham,
             name: product.name,
             brand: product.thuongHieu,
             productType: product.loaiSanPham,
-            colors: product.mauSac.map(color => `#${color}`),
-            images: product.hinh.map(base64 => `data:image/jpeg;base64,${base64}`),
+            colors: product.mauSac.map((color) => `#${color}`),
+            images: product.hinh.map((base64) => `data:image/jpeg;base64,${base64}`),
             material: product.chatLieu,
             description: product.moTa || "Không có mô tả",
             rating: 4.5,
@@ -59,7 +61,7 @@ const ComboDetail = () => {
         const initialSelections = {};
         const initialImages = {};
         const initialColorSelected = {};
-        formattedCombo.products.forEach(product => {
+        formattedCombo.products.forEach((product) => {
           initialSelections[product.id] = { colorIndex: null, sizeIndex: null };
           initialImages[product.id] = 0;
           initialColorSelected[product.id] = false;
@@ -67,6 +69,24 @@ const ComboDetail = () => {
         setSelections(initialSelections);
         setSelectedImages(initialImages);
         setColorSelected(initialColorSelected);
+
+        // Kiểm tra trạng thái yêu thích
+        const userData = JSON.parse(localStorage.getItem("user"));
+        const currentUserId = userData?.maNguoiDung;
+        if (currentUserId) {
+          const yeuThichResponse = await fetch("http://localhost:5261/api/YeuThich");
+          if (!yeuThichResponse.ok) throw new Error("Failed to fetch favorites");
+          const yeuThichData = await yeuThichResponse.json();
+          const userFavorite = yeuThichData.find(
+            (yeuThich) =>
+              yeuThich.maCombo === formattedCombo.id &&
+              yeuThich.maNguoiDung === currentUserId
+          );
+          if (userFavorite) {
+            setIsLiked(true);
+            setLikedId(userFavorite.maYeuThich);
+          }
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -89,15 +109,15 @@ const ComboDetail = () => {
       const data = await response.json();
       const productData = Array.isArray(data) ? data[0] : data;
 
-      const sizeData = productData.details.map(detail => ({
+      const sizeData = productData.details.map((detail) => ({
         size: detail.kichThuoc.trim(),
         quantity: detail.soLuong,
         price: detail.gia,
       }));
 
-      setSizeQuantities(prev => ({
+      setSizeQuantities((prev) => ({
         ...prev,
-        [productId]: sizeData, // Lưu toàn bộ danh sách kích thước từ API
+        [productId]: sizeData,
       }));
     } catch (err) {
       console.error("Error fetching size quantities:", err);
@@ -105,17 +125,16 @@ const ComboDetail = () => {
   };
 
   const handleSelectionChange = (productId, field, value) => {
-    setSelections(prev => {
+    setSelections((prev) => {
       const newSelections = {
         ...prev,
         [productId]: { ...prev[productId], [field]: value },
       };
 
       if (field === "colorIndex") {
-        const selectedColor = combo.products.find(p => p.id === productId)
-          .colors[value];
+        const selectedColor = combo.products.find((p) => p.id === productId).colors[value];
         fetchSizeQuantities(productId, selectedColor);
-        setColorSelected(prev => ({
+        setColorSelected((prev) => ({
           ...prev,
           [productId]: true,
         }));
@@ -126,7 +145,92 @@ const ComboDetail = () => {
   };
 
   const handleImageChange = (productId, index) => {
-    setSelectedImages(prev => ({ ...prev, [productId]: index }));
+    setSelectedImages((prev) => ({ ...prev, [productId]: index }));
+  };
+
+  const handleToggleLike = async () => {
+    const userData = JSON.parse(localStorage.getItem("user"));
+    const maNguoiDung = userData?.maNguoiDung;
+    const hoTen = userData?.hoTen;
+
+    if (!maNguoiDung) {
+      Swal.fire({
+        title: "Vui lòng đăng nhập!",
+        text: "Bạn cần đăng nhập để thêm combo vào danh sách yêu thích.",
+        icon: "warning",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+      return;
+    }
+
+    if (isLiked) {
+      try {
+        const response = await fetch(`http://localhost:5261/api/YeuThich/${likedId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        if (!response.ok) throw new Error("Không thể xóa combo khỏi danh sách yêu thích");
+        setIsLiked(false);
+        setLikedId(null);
+        Swal.fire({
+          title: "Thành công!",
+          text: "Đã xóa combo khỏi danh sách yêu thích!",
+          icon: "success",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        Swal.fire({
+          title: "Lỗi!",
+          text: `Có lỗi xảy ra khi xóa yêu thích: ${err.message}`,
+          icon: "error",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      }
+    } else {
+      const yeuThichData = {
+        maCombo: combo.id,
+        maNguoiDung: maNguoiDung,
+        hoTen: hoTen,
+        ngayYeuThich: new Date().toISOString(),
+      };
+      try {
+        const response = await fetch("http://localhost:5261/api/YeuThich", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(yeuThichData),
+        });
+        if (!response.ok) throw new Error("Không thể thêm combo vào danh sách yêu thích");
+        const addedFavorite = await response.json();
+        setIsLiked(true);
+        setLikedId(addedFavorite.maYeuThich);
+        Swal.fire({
+          title: "Thành công!",
+          text: "Đã thêm combo vào danh sách yêu thích!",
+          icon: "success",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        Swal.fire({
+          title: "Lỗi!",
+          text: `Có lỗi xảy ra khi thêm yêu thích: ${err.message}`,
+          icon: "error",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      }
+    }
   };
 
   const handleAddToCart = async () => {
@@ -146,7 +250,7 @@ const ComboDetail = () => {
     }
 
     const invalidProducts = combo.products.filter(
-      product => selections[product.id].sizeIndex === null
+      (product) => selections[product.id].sizeIndex === null
     );
     if (invalidProducts.length > 0) {
       Swal.fire({
@@ -164,7 +268,7 @@ const ComboDetail = () => {
       IDKhachHang: userId,
       IDCombo: Number(combo.id),
       SoLuong: Number(comboQuantity),
-      Detail: combo.products.map(product => ({
+      Detail: combo.products.map((product) => ({
         MaSanPham: String(product.id),
         MauSac: product.colors[selections[product.id].colorIndex].replace("#", ""),
         KichThuoc: sizeQuantities[product.id][selections[product.id].sizeIndex].size,
@@ -182,7 +286,7 @@ const ComboDetail = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to add combo to cart: ${errorText}`);
+        throw new Error(`Không thể thêm combo vào giỏ hàng: ${errorText}`);
       }
 
       Swal.fire({
@@ -264,8 +368,13 @@ const ComboDetail = () => {
                   <ShoppingBag className="mr-2 h-5 w-5" />
                   Thêm Vào Giỏ Hàng
                 </button>
-                <button className="h-12 w-12 border border-primary/30 rounded-full hover:bg-primary/5 transition-colors flex items-center justify-center">
-                  <Heart className="h-5 w-5" />
+                <button
+                  onClick={handleToggleLike}
+                  className="h-12 w-12 border border-primary/30 rounded-full hover:bg-primary/5 transition-colors flex items-center justify-center"
+                >
+                  <Heart
+                    className={cn("h-5 w-5", isLiked ? "fill-red-500 text-red-500" : "text-gray-400")}
+                  />
                 </button>
               </div>
             </div>
@@ -277,7 +386,7 @@ const ComboDetail = () => {
                 <p className="text-muted-foreground">{combo.description}</p>
               </div>
 
-              {combo.products.map(product => (
+              {combo.products.map((product) => (
                 <div key={product.id} className="border p-4 rounded-lg">
                   <h3 className="text-lg font-medium mb-2">{product.name}</h3>
 
@@ -325,9 +434,7 @@ const ComboDetail = () => {
                               : "ring-1 ring-border hover:ring-primary"
                           )}
                           style={{ backgroundColor: color }}
-                          onClick={() =>
-                            handleSelectionChange(product.id, "colorIndex", index)
-                          }
+                          onClick={() => handleSelectionChange(product.id, "colorIndex", index)}
                           aria-label={`Select color ${color}`}
                         />
                       ))}
@@ -347,9 +454,7 @@ const ComboDetail = () => {
                                 ? "border-primary bg-primary/10 shadow-lg"
                                 : "border-border hover:border-primary/50"
                             )}
-                            onClick={() =>
-                              handleSelectionChange(product.id, "sizeIndex", index)
-                            }
+                            onClick={() => handleSelectionChange(product.id, "sizeIndex", index)}
                           >
                             <span>{sizeObj.size}</span>
                             <span className="text-muted-foreground">{sizeObj.quantity}</span>
