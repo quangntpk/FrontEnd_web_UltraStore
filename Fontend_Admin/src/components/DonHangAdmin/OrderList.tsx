@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import OrderDetailsModal from './OrderDetailsModal';
-import Notification from '../layout/Notification'; // Import Notification
+import Notification from '../layout/Notification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ interface Order {
   trangThaiThanhToan: number;
   hinhThucThanhToan: string;
   lyDoHuy?: string;
+  tenSanPhamHoacCombo?: string;
 }
 
 interface NotificationState {
@@ -39,6 +40,14 @@ const OrderList: React.FC = () => {
     type: 'info',
     isVisible: false,
   });
+
+  // Danh sách các lý do hủy gợi ý
+  const cancelReasonsSuggestions = [
+    "Khách hàng không muốn mua nữa",
+    "Hết hàng",
+    "Sai thông tin đơn hàng",
+    "Khác"
+  ];
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -70,7 +79,6 @@ const OrderList: React.FC = () => {
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ message, type, isVisible: true });
-    // Tự động ẩn thông báo sau 3 giây
     setTimeout(() => {
       setNotification({ message: '', type: 'info', isVisible: false });
     }, 3000);
@@ -85,7 +93,8 @@ const OrderList: React.FC = () => {
       handleTabChange(activeTab);
     } catch (error) {
       console.error('Error approving order:', error);
-      showNotification("Có lỗi xảy ra khi duyệt đơn hàng.", "error");
+      const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi duyệt đơn hàng.";
+      showNotification(errorMessage, "error");
     }
   };
 
@@ -130,9 +139,13 @@ const OrderList: React.FC = () => {
     setShowDetailsModal(true);
   };
 
+  // Hàm chọn lý do gợi ý
+  const handleReasonSuggestionClick = (reason: string) => {
+    setCancelReason(reason);
+  };
+
   return (
     <div className="p-6 bg-white rounded-lg shadow">
-      {/* Hiển thị thông báo */}
       {notification.isVisible && (
         <Notification
           message={notification.message}
@@ -157,6 +170,7 @@ const OrderList: React.FC = () => {
             <TableRow>
               <TableHead>#</TableHead>
               <TableHead>Tên khách hàng</TableHead>
+              <TableHead>Tên sản phẩm/Combo</TableHead>
               <TableHead>Ngày đặt</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Thanh toán</TableHead>
@@ -210,7 +224,6 @@ const OrderList: React.FC = () => {
         </Table>
       </div>
 
-      {/* Modal chi tiết đơn hàng */}
       {showDetailsModal && selectedOrder && (
         <OrderDetailsModal
           orderId={selectedOrder.maDonHang}
@@ -218,13 +231,13 @@ const OrderList: React.FC = () => {
         />
       )}
 
-      {/* Modal nhập lý do hủy */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nhập lý do hủy đơn hàng</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {/* Ô nhập lý do */}
             <Input
               type="text"
               placeholder="Lý do hủy"
@@ -232,6 +245,23 @@ const OrderList: React.FC = () => {
               onChange={(e) => setCancelReason(e.target.value)}
               className="w-full"
             />
+            {/* Danh sách gợi ý lý do hủy */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Chọn lý do gợi ý:</p>
+              <div className="flex flex-wrap gap-2">
+                {cancelReasonsSuggestions.map((reason, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReasonSuggestionClick(reason)}
+                    className={`text-sm ${cancelReason === reason ? 'bg-gray-200' : ''}`}
+                  >
+                    {reason}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCancelModal(false)}>

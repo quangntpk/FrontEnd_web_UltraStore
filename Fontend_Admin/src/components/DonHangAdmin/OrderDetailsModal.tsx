@@ -8,7 +8,7 @@ interface OrderDetail {
   maChiTietDh: number;
   tenSanPham: string;
   soLuong: number;
-  gia: number; // Thêm trường gia
+  gia: number;
   thanhTien: number;
 }
 
@@ -40,6 +40,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
     const fetchOrderDetails = async () => {
       try {
         const response = await axios.get(`http://localhost:5261/api/orders/${orderId}`);
+        console.log('Order Details:', response.data); // Log để kiểm tra dữ liệu
         setOrderDetails(response.data);
       } catch (error) {
         console.error('Error fetching order details:', error);
@@ -65,7 +66,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                   <TableHead>ID</TableHead>
                   <TableHead>Tên sản phẩm</TableHead>
                   <TableHead>Số lượng</TableHead>
-                  <TableHead>Giá</TableHead> {/* Thêm cột Giá */}
+                  <TableHead>Giá</TableHead>
                   <TableHead>Thành tiền</TableHead>
                 </TableRow>
               </TableHeader>
@@ -73,9 +74,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                 {orderDetails.sanPhams.map(item => (
                   <TableRow key={item.maChiTietDh}>
                     <TableCell>{item.maChiTietDh}</TableCell>
-                    <TableCell>{item.tenSanPham}</TableCell>
+                    <TableCell>{item.tenSanPham || "Không có tên sản phẩm"}</TableCell>
                     <TableCell>{item.soLuong}</TableCell>
-                    <TableCell>{item.gia?.toLocaleString('vi-VN')} VNĐ</TableCell> {/* Hiển thị giá */}
+                    <TableCell>{item.gia?.toLocaleString('vi-VN')} VNĐ</TableCell>
                     <TableCell>{item.thanhTien?.toLocaleString('vi-VN')} VNĐ</TableCell>
                   </TableRow>
                 ))}

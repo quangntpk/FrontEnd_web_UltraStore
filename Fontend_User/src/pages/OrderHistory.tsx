@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -12,13 +13,16 @@ import {
 } from "@/components/ui/select";
 import { ClipboardList, Package, Truck, CheckCircle, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 // Define order statuses and their corresponding components
 const orderStatuses = {
-  "pending": { color: "bg-yellow-500", icon: ClipboardList, label: "Chờ xác nhận" },
-  "processing": { color: "bg-blue-500", icon: Package, label: "Đang xử lý" },
-  "shipping": { color: "bg-purple-500", icon: Truck, label: "Đang giao hàng" },
-  "completed": { color: "bg-green-500", icon: CheckCircle, label: "Đã hoàn thành" },
+  pending: { color: "bg-yellow-500", icon: ClipboardList, label: "Chờ xác nhận" },
+  processing: { color: "bg-blue-500", icon: Package, label: "Đang xử lý" },
+  shipping: { color: "bg-purple-500", icon: Truck, label: "Đang giao hàng" },
+  completed: { color: "bg-green-500", icon: CheckCircle, label: "Đã hoàn thành" },
+  canceled: { color: "bg-red-500", icon: CheckCircle, label: "Đã hủy" },
 } as const;
 
 // Define type for status based on orderStatuses keys
@@ -39,54 +43,12 @@ interface Order {
   }>;
 }
 
-// Mock data for the orders with correct status type
-const mockOrders: Order[] = [
-  {
-    id: "ORD-12345",
-    date: "2023-10-15",
-    status: "completed",
-    total: 2500000,
-    items: [
-      { id: 1, name: "Áo Polo Nam", quantity: 2, price: 450000, image: "/placeholder.svg" },
-      { id: 2, name: "Quần Jeans", quantity: 1, price: 1600000, image: "/placeholder.svg" },
-    ]
-  },
-  {
-    id: "ORD-12346",
-    date: "2023-11-20",
-    status: "shipping",
-    total: 3200000,
-    items: [
-      { id: 3, name: "Giày Thể Thao", quantity: 1, price: 2200000, image: "/placeholder.svg" },
-      { id: 4, name: "Tất Nam", quantity: 2, price: 500000, image: "/placeholder.svg" },
-    ]
-  },
-  {
-    id: "ORD-12347",
-    date: "2023-12-05",
-    status: "processing",
-    total: 1800000,
-    items: [
-      { id: 5, name: "Áo Khoác", quantity: 1, price: 1800000, image: "/placeholder.svg" },
-    ]
-  },
-  {
-    id: "ORD-12348",
-    date: "2024-01-10",
-    status: "pending",
-    total: 4500000,
-    items: [
-      { id: 6, name: "Đồng Hồ Nam", quantity: 1, price: 3500000, image: "/placeholder.svg" },
-      { id: 7, name: "Dây Nịt", quantity: 1, price: 1000000, image: "/placeholder.svg" },
-    ]
-  },
-];
-
 interface OrderItemProps {
   order: Order;
+  onCancel: (orderId: string) => void;
 }
 
-const OrderItem = ({ order }: OrderItemProps) => {
+const OrderItem = ({ order, onCancel }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const statusInfo = orderStatuses[order.status];
   const StatusIcon = statusInfo.icon;
@@ -100,7 +62,7 @@ const OrderItem = ({ order }: OrderItemProps) => {
             Ngày đặt: {new Date(order.date).toLocaleDateString('vi-VN')}
           </span>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <span className={cn("w-3 h-3 rounded-full", statusInfo.color)}></span>
           <span className="text-sm font-medium flex items-center gap-1">
@@ -108,15 +70,15 @@ const OrderItem = ({ order }: OrderItemProps) => {
             {statusInfo.label}
           </span>
         </div>
-        
+
         <div className="text-right">
           <div className="font-semibold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total)}</div>
           <span className="text-sm text-muted-foreground">{order.items.length} sản phẩm</span>
         </div>
-        
+
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
           >
@@ -133,9 +95,18 @@ const OrderItem = ({ order }: OrderItemProps) => {
           <Button variant="outline" size="sm">
             <Eye className="h-4 w-4 mr-1" /> Theo dõi
           </Button>
+          {(order.status === "pending" || order.status === "processing") && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onCancel(order.id)}
+            >
+              Hủy đơn
+            </Button>
+          )}
         </div>
       </div>
-      
+
       {isExpanded && (
         <div className="p-4 border-t">
           <div className="space-y-4">
@@ -156,7 +127,7 @@ const OrderItem = ({ order }: OrderItemProps) => {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between">
               <span>Tổng thanh toán:</span>
@@ -173,15 +144,78 @@ const OrderItem = ({ order }: OrderItemProps) => {
 
 const OrderHistory = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  
-  const filteredOrders = filterStatus === "all" 
-    ? mockOrders 
-    : mockOrders.filter(order => order.status === filterStatus);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const cancelReasonsSuggestions = [
+    "Không muốn mua nữa",
+    "Hết hàng",
+    "Sai thông tin đơn hàng",
+    "Khác"
+  ];
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await axios.get('http://localhost:5261/api/user/orders');
+        setOrders(response.data);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  const filteredOrders = filterStatus === "all"
+    ? orders
+    : orders.filter(order => order.status === filterStatus);
+
+  const handleCancelClick = (orderId: string) => {
+    setCancelOrderId(orderId);
+    setCancelReason('');
+    setShowCancelModal(true);
+  };
+
+  const handleCancel = async () => {
+    if (!cancelReason.trim()) {
+      alert("Vui lòng nhập lý do hủy!");
+      return;
+    }
+    if (cancelOrderId === null) return;
+
+    try {
+      const orderIdNumber = parseInt(cancelOrderId.replace('ORD-', '')); // Chuyển đổi từ "ORD-00016" thành số 16
+      await axios.put(
+        `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
+        cancelReason,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      alert("Hủy đơn hàng thành công!");
+      setShowCancelModal(false);
+      setCancelReason('');
+      setCancelOrderId(null);
+      const response = await axios.get('http://localhost:5261/api/user/orders');
+      setOrders(response.data);
+    } catch (error) {
+      console.error('Error canceling order:', error);
+      alert(error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng.");
+    }
+  };
+
+  const handleReasonSuggestionClick = (reason: string) => {
+    setCancelReason(reason);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
-      
+
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-background to-secondary/30">
         <div className="max-w-4xl mx-auto my-[50px]">
           <div className="text-center mb-8">
@@ -201,13 +235,13 @@ const OrderHistory = () => {
                   <Truck className="mr-2 h-4 w-4" /> Theo dõi đơn hàng
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="all-orders">
                 <div className="mb-6 flex justify-between items-center">
                   <h2 className="text-lg font-medium">Đơn hàng của bạn</h2>
                   <div className="w-48">
-                    <Select 
-                      value={filterStatus} 
+                    <Select
+                      value={filterStatus}
                       onValueChange={setFilterStatus}
                     >
                       <SelectTrigger>
@@ -219,15 +253,20 @@ const OrderHistory = () => {
                         <SelectItem value="processing">Đang xử lý</SelectItem>
                         <SelectItem value="shipping">Đang giao hàng</SelectItem>
                         <SelectItem value="completed">Đã hoàn thành</SelectItem>
+                        <SelectItem value="canceled">Đã hủy</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                
+
                 {filteredOrders.length > 0 ? (
                   <div className="space-y-4">
                     {filteredOrders.map(order => (
-                      <OrderItem key={order.id} order={order} />
+                      <OrderItem
+                        key={order.id}
+                        order={order}
+                        onCancel={handleCancelClick}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -240,15 +279,15 @@ const OrderHistory = () => {
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="tracking">
                 <div className="mb-6">
                   <h2 className="text-lg font-medium mb-4">Tra cứu đơn hàng</h2>
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <input 
-                        type="text" 
-                        placeholder="Nhập mã đơn hàng của bạn" 
+                      <input
+                        type="text"
+                        placeholder="Nhập mã đơn hàng của bạn"
                         className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -257,7 +296,7 @@ const OrderHistory = () => {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="text-center py-12 border rounded-lg">
                   <Truck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium">Nhập mã đơn hàng để kiểm tra</h3>
@@ -272,6 +311,48 @@ const OrderHistory = () => {
       </main>
 
       <Footer />
+
+      {/* Modal hủy đơn hàng */}
+      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nhập lý do hủy đơn hàng</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <Input
+              type="text"
+              placeholder="Lý do hủy"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full"
+            />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Chọn lý do gợi ý:</p>
+              <div className="flex flex-wrap gap-2">
+                {cancelReasonsSuggestions.map((reason, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReasonSuggestionClick(reason)}
+                    className={`text-sm ${cancelReason === reason ? 'bg-gray-200' : ''}`}
+                  >
+                    {reason}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelModal(false)}>
+              Đóng
+            </Button>
+            <Button variant="destructive" onClick={handleCancel}>
+              Xác nhận hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
