@@ -246,8 +246,8 @@ const ProductDetail = () => {
       return;
     }
 
-    const userData = JSON.parse(localStorage.getItem("user"));
-    const maNguoiDung = userData?.maNguoiDung;
+    const userData = localStorage.getItem("userId");
+    const maNguoiDung = userData;
     const selectedProduct = products[selectedColorIndex];
     const selectedSize = selectedProduct.sizes[selectedSizeIndex];
 

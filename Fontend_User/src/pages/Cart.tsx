@@ -670,7 +670,7 @@ const CartPage = () => {
                               {item.tenSanPham}{" "}
                               <span className="text-xs">x{item.soLuong}</span>
                             </span>
-                            <span>{formatCurrency(item.tienSanPham * item.soLuong)} VND</span>
+                            <span>{formatCurrency(item.tienSanPham)} VND</span>
                           </div>
                         ))}
                         {comboItems.map((combo) => (
