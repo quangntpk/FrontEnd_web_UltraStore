@@ -30,12 +30,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, MoreVertical, RefreshCw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, MoreVertical, RefreshCw, Plus, Minus } from "lucide-react";
 import Notification from "@/components/layout/Notification";
 
 interface KichThuoc {
   maKichThuoc: number;
   tenKichThuoc: string;
+  loaiSanPham: string;
+}
+
+interface KichThuocForm {
+  tenKichThuoc: string;
+  loaiSanPham: string;
 }
 
 const KichThuoc = () => {
@@ -47,7 +60,9 @@ const KichThuoc = () => {
   const [moModalSua, setMoModalSua] = useState(false);
   const [moModalXoa, setMoModalXoa] = useState(false);
   const [kichThuocCanXoa, setKichThuocCanXoa] = useState<KichThuoc | null>(null);
-  const [tenKichThuocMoi, setTenKichThuocMoi] = useState("");
+  const [danhSachKichThuoc, setDanhSachKichThuoc] = useState<KichThuocForm[]>([
+    { tenKichThuoc: "", loaiSanPham: "" },
+  ]);
   const [kichThuocDangSua, setKichThuocDangSua] = useState<KichThuoc | null>(null);
   const [trangHienTai, setTrangHienTai] = useState(1);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -85,7 +100,8 @@ const KichThuoc = () => {
       const filtered = kichThuocs.filter(
         (kt) =>
           kt.tenKichThuoc?.toLowerCase().includes(tuKhoa) ||
-          kt.maKichThuoc?.toString().includes(tuKhoa)
+          kt.maKichThuoc?.toString().includes(tuKhoa) ||
+          kt.loaiSanPham?.toLowerCase().includes(tuKhoa)
       );
       setFilteredKichThuocs(filtered);
       setTrangHienTai(1);
@@ -97,19 +113,31 @@ const KichThuoc = () => {
   }, [locKichThuoc]);
 
   const themKichThuoc = async () => {
-    if (!tenKichThuocMoi.trim()) {
-      setErrorMessage("Tên kích thước không được để trống!");
-      return;
-    }
-    setErrorMessage(null);
     try {
-      const response = await fetch(`${API_URL}/api/KichThuoc`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ TenKichThuoc: tenKichThuocMoi }),
-      });
-      if (!response.ok) throw new Error("Không thể thêm kích thước");
-      setTenKichThuocMoi("");
+      for (const kichThuoc of danhSachKichThuoc) {
+        if (!kichThuoc.tenKichThuoc.trim() || !kichThuoc.loaiSanPham) {
+          setErrorMessage("Vui lòng điền đầy đủ tên kích thước và loại sản phẩm");
+          return;
+        }
+      }
+      setErrorMessage(null);
+
+      const promises = danhSachKichThuoc.map((kichThuoc) =>
+        fetch(`${API_URL}/api/KichThuoc`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            TenKichThuoc: kichThuoc.tenKichThuoc,
+            LoaiSanPham: kichThuoc.loaiSanPham,
+          }),
+        }).then((res) => {
+          if (!res.ok) throw new Error("Không thể thêm kích thước");
+          return res;
+        })
+      );
+
+      await Promise.all(promises);
+      setDanhSachKichThuoc([{ tenKichThuoc: "", loaiSanPham: "" }]);
       setMoModalThem(false);
       layDanhSachKichThuoc();
       setNotification({ message: "Thêm kích thước thành công!", type: "success" });
@@ -119,8 +147,8 @@ const KichThuoc = () => {
   };
 
   const suaKichThuoc = async () => {
-    if (!kichThuocDangSua || !kichThuocDangSua.tenKichThuoc.trim()) {
-      setErrorMessage("Tên kích thước không được để trống!");
+    if (!kichThuocDangSua || !kichThuocDangSua.tenKichThuoc.trim() || !kichThuocDangSua.loaiSanPham) {
+      setErrorMessage("Tên kích thước và loại sản phẩm không được để trống!");
       return;
     }
     setErrorMessage(null);
@@ -131,6 +159,7 @@ const KichThuoc = () => {
         body: JSON.stringify({
           MaKichThuoc: kichThuocDangSua.maKichThuoc,
           TenKichThuoc: kichThuocDangSua.tenKichThuoc,
+          LoaiSanPham: kichThuocDangSua.loaiSanPham,
         }),
       });
       if (!response.ok) throw new Error("Không thể cập nhật kích thước");
@@ -166,7 +195,6 @@ const KichThuoc = () => {
 
   return (
     <div className="space-y-6">
-      {/* Hiển thị thông báo */}
       {notification && (
         <Notification
           message={notification.message}
@@ -211,13 +239,14 @@ const KichThuoc = () => {
                 <TableRow>
                   <TableHead>STT</TableHead>
                   <TableHead>Tên Kích Thước</TableHead>
+                  <TableHead>Loại Sản Phẩm</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {dangTai ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
                       Đang tải...
                     </TableCell>
                   </TableRow>
@@ -226,6 +255,7 @@ const KichThuoc = () => {
                     <TableRow key={kt.maKichThuoc} className="hover:bg-muted/50">
                       <TableCell>{chiSoKichThuocDau + index + 1}</TableCell>
                       <TableCell>{kt.tenKichThuoc}</TableCell>
+                      <TableCell>{kt.loaiSanPham}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -265,7 +295,7 @@ const KichThuoc = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
                       Không tìm thấy kích thước nào.
                     </TableCell>
                   </TableRow>
@@ -301,20 +331,71 @@ const KichThuoc = () => {
         open={moModalThem}
         onOpenChange={(open) => {
           setMoModalThem(open);
-          if (!open) setErrorMessage(null);
+          if (!open) {
+            setErrorMessage(null);
+            setDanhSachKichThuoc([{ tenKichThuoc: "", loaiSanPham: "" }]);
+          }
         }}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Thêm Kích Thước</DialogTitle>
-            <DialogDescription>Nhập tên kích thước mới.</DialogDescription>
+            <DialogDescription>Nhập thông tin kích thước mới.</DialogDescription>
           </DialogHeader>
-          <Input
-            value={tenKichThuocMoi}
-            onChange={(e) => setTenKichThuocMoi(e.target.value)}
-            placeholder="Tên kích thước"
-          />
+          {danhSachKichThuoc.map((kichThuoc, index) => (
+            <div key={index} className="flex items-center gap-2 mb-4">
+              <div className="flex-1 grid grid-cols-2 gap-2">
+                <Input
+                  value={kichThuoc.tenKichThuoc}
+                  onChange={(e) => {
+                    const newList = [...danhSachKichThuoc];
+                    newList[index].tenKichThuoc = e.target.value;
+                    setDanhSachKichThuoc(newList);
+                  }}
+                  placeholder="Tên kích thước"
+                />
+                <Select
+                  value={kichThuoc.loaiSanPham}
+                  onValueChange={(value) => {
+                    const newList = [...danhSachKichThuoc];
+                    newList[index].loaiSanPham = value;
+                    setDanhSachKichThuoc(newList);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn loại sản phẩm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Áo">Áo</SelectItem>
+                    <SelectItem value="Quần">Quần</SelectItem>
+                    <SelectItem value="Phụ kiện">Phụ kiện</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {danhSachKichThuoc.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    const newList = danhSachKichThuoc.filter((_, i) => i !== index);
+                    setDanhSachKichThuoc(newList);
+                  }}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
           {errorMessage && <p className="text-red-500 text-sm mt-2">{errorMessage}</p>}
+          <Button
+            variant="outline"
+            className="w-full mb-4"
+            onClick={() => {
+              setDanhSachKichThuoc([...danhSachKichThuoc, { tenKichThuoc: "", loaiSanPham: "" }]);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" /> Thêm kích thước khác
+          </Button>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoModalThem(false)}>
               Hủy
@@ -335,7 +416,7 @@ const KichThuoc = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Sửa Kích Thước</DialogTitle>
-            <DialogDescription>Cập nhật tên kích thước.</DialogDescription>
+            <DialogDescription>Cập nhật thông tin kích thước.</DialogDescription>
           </DialogHeader>
           <Input
             value={kichThuocDangSua?.tenKichThuoc || ""}
@@ -344,6 +425,21 @@ const KichThuoc = () => {
             }
             placeholder="Tên kích thước"
           />
+          <Select
+            value={kichThuocDangSua?.loaiSanPham || ""}
+            onValueChange={(value) =>
+              setKichThuocDangSua({ ...kichThuocDangSua!, loaiSanPham: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Chọn loại sản phẩm" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Áo">Áo</SelectItem>
+              <SelectItem value="Quần">Quần</SelectItem>
+              <SelectItem value="Phụ kiện">Phụ kiện</SelectItem>
+            </SelectContent>
+          </Select>
           {errorMessage && <p className="text-red-500 text-sm mt-2">{errorMessage}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoModalSua(false)}>
@@ -366,6 +462,10 @@ const KichThuoc = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tên Kích Thước</label>
                 <Input value={kichThuocChiTiet.tenKichThuoc} disabled />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Loại Sản Phẩm</label>
+                <Input value={kichThuocChiTiet.loaiSanPham} disabled />
               </div>
             </div>
           )}

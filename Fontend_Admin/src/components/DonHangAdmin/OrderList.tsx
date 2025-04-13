@@ -184,6 +184,7 @@ const OrderList: React.FC = () => {
               <TableRow key={order.maDonHang} className="hover:bg-gray-50">
                 <TableCell>{order.maDonHang}</TableCell>
                 <TableCell>{order.tenNguoiNhan}</TableCell>
+                <TableCell>{order.tenSanPhamHoacCombo}</TableCell>
                 <TableCell>
                   {order.ngayDat
                     ? new Date(order.ngayDat.split('/').reverse().join('-')).toLocaleDateString('vi-VN')
