@@ -591,7 +591,7 @@ const CartPage = () => {
               action: {
                 label: "Xem chi tiết",
                 onClick: () =>
-                  navigate("/Index", { state: { orderId: result.orderId } }),
+                  navigate("/PaymentSuccess", { state: { orderId: result.orderId } }),
               },
             });
             setCartItems([]);
@@ -600,7 +600,7 @@ const CartPage = () => {
             setDiscountApplied(false);
             setDiscountAmount(0);
             setShowCheckout(false);
-            navigate("/Index", { state: { orderId: result.orderId } });
+            navigate("/", { state: { orderId: result.orderId } });
           } else if (paymentMethod === "vnpay") {
           window.location.href = result.message;     
           }

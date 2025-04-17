@@ -30,6 +30,7 @@ const Login = () => {
 
       const { message, user, token, redirectUrl } = response.data;
 
+
       // Chỉ lưu vào localStorage nếu là user (vaiTro != 1)
       if (user && user.vaiTro !== 1) {
         localStorage.setItem("token", token);
@@ -38,7 +39,7 @@ const Login = () => {
           maNguoiDung: user.maNguoiDung || "",  
           fullName: user.hoTen || "",
           email: user.email || "",
-          role: user.vaiTro || "",
+          vaiTro: user.vaiTro || "",
         }));
         window.dispatchEvent(new Event("storageChange"));
       }

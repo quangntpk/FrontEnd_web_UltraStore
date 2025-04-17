@@ -25,6 +25,7 @@ import SupportChat from "./components/SupportChat"; // Import component SupportC
 import ComboListing from "./pages/ComboListing";
 import DiaChi from "./pages/DiaChi";
 import Comment from "./pages/Comment"; 
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -87,15 +88,15 @@ const GoogleCallbackHandler = () => {
 
       navigate(location.pathname, { replace: true });
       navigate(role === 1 ? "/admin" : "/");
-    } else if (location.search) {
-      console.log("Missing token or userId in query string");
-      toast({
-        variant: "destructive",
-        title: "Lỗi đăng nhập Google ⚠️",
-        description: "Không thể lấy thông tin đăng nhập từ Google.",
-        duration: 3000,
-        className: "bg-red-500 text-white border border-red-700 shadow-lg",
-      });
+    // } else if (location.search) {
+    //   console.log("Missing token or userId in query string");
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Lỗi đăng nhập Google ⚠️",
+    //     description: "Không thể lấy thông tin đăng nhập từ Google.",
+    //     duration: 3000,
+    //     className: "bg-red-500 text-white border border-red-700 shadow-lg",
+    //   });
     } else {
       console.log("No query string present");
     }
@@ -135,6 +136,7 @@ const App = () => (
           <Route path="/combo" element={<ComboListing />} />
           <Route path="/DiaChi" element={<DiaChi />} />
           <Route path="/Comment" element={<Comment />} />
+          <Route path="/PaymentSuccess" element={<PaymentSuccess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />

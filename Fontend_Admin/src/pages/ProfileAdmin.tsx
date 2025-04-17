@@ -32,6 +32,7 @@ const Profile = () => {
   // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
+      console.log("Token:", token);
       try {
         const response = await axios.get("http://localhost:5261/api/UpdateProfile/profile", {
           headers: {
