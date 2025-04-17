@@ -97,7 +97,7 @@ const Sidebar = () => {
   const categoryItems = [
     { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' }, 
     { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },     
-    { to: '/kichthuoc', icon: Shield, label: 'Kích Thước' },
+
   ];
 
   const additionalNavItems = [

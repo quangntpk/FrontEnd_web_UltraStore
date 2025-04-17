@@ -57,7 +57,6 @@ const App = () => (
             <Route path="/loaisanpham" element={<LoaiSanPham/>} />
             <Route path="/thuonghieu" element={<ThuongHieu/>} />
             <Route path="/giaodien" element={<Giaodien/>} />
-            <Route path="/kichthuoc" element={<KichThuoc/>} />
             {/* New routes */}
             <Route path="/payments" element={<Payments />} />
             <Route path="/marketing" element={<Marketing />} />
@@ -69,17 +68,9 @@ const App = () => (
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/website" element={<Website />} />
             <Route path="/security" element={<Security />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/invoices" element={<Invoices />} />
           </Route>
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={[1]} />}>
-            <Route element={<AdminLayout />}>
-              <Route path="/invoices" element={<Invoices />} />
-            </Route>
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={[1]} />}>
-            <Route element={<AdminLayout />}>
-              <Route path="/customer" element={<Invoices />} />
-            </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

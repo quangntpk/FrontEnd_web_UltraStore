@@ -79,7 +79,7 @@ const Header = ({ title }: HeaderProps) => {
       });
 
       // Chuyển hướng theo redirectTo hoặc mặc định về login
-      window.location.href = response.data.redirectTo || 'http://localhost:8081/login?logout=true';
+      window.location.href = response.data.redirectTo || 'http://localhost:8080/login?logout=true';
     } catch (error) {
       console.error('Đăng xuất thất bại:', error);
       toast.error('Đăng xuất thất bại. Vui lòng thử lại.');
