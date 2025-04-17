@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,27 +18,23 @@ const AdminLayout = () => {
   useEffect(() => {
     setPageTitle(getPageTitle(location.pathname));
     setIsPageLoading(true);
-    
-    // Simulate page loading
+
     const timer = setTimeout(() => {
       setIsPageLoading(false);
     }, 300);
 
     return () => clearTimeout(timer);
   }, [location.pathname]);
-  
+
   useEffect(() => {
-    // Show welcome toast on first load
     if (location.pathname === "/" && !sessionStorage.getItem("welcomed")) {
-      setTimeout(() => {
-        toast.success("Welcome to AdminPro", {
-          description: "Your powerful sales management dashboard",
-          duration: 5000,
-        });
-        sessionStorage.setItem("welcomed", "true");
-      }, 1000);
+      toast.success("Welcome to AdminPro", {
+        description: "Your powerful sales management dashboard",
+        duration: 5000,
+      });
+      sessionStorage.setItem("welcomed", "true");
     }
-  }, [location.pathname]);
+  }, [location.pathname]); // Dependency là location.pathname, không gây vòng lặp
 
   return (
     <div className="flex min-h-screen w-full">

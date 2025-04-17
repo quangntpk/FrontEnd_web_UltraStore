@@ -21,6 +21,7 @@ import ProfileAdmin from "./pages/ProfileAdmin.tsx";
 import Login from "./pages/Login";
 import Giaodien from "./pages/Giaodien";
 import KichThuoc from "./pages/KichThuoc.tsx";
+import ProtectedRoute from "@/pages/ProtectedRoute.tsx";
 // Create placeholder pages for the new routes
 const Payments = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Payments</h1><p>Payments management page coming soon.</p></div>;
 const Marketing = () => <div className="p-4"><h1 className="text-2xl font-bold mb-4">Marketing</h1><p>Marketing management page coming soon.</p></div>;
@@ -43,15 +44,14 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route element={<ProtectedRoute allowedRoles={[1,2]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/products" element={<Products />} />
             <Route path="/ProfileAdmin" element={<ProfileAdmin/>} />
-            <Route path="/customers" element={<Customers />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/inventory" element={<Inventory />} />
-            <Route path="/invoices" element={<Invoices />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/combos" element={<Combos/>} />
             <Route path="/loaisanpham" element={<LoaiSanPham/>} />
@@ -69,6 +69,17 @@ const App = () => (
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/website" element={<Website />} />
             <Route path="/security" element={<Security />} />
+          </Route>
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={[1]} />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/invoices" element={<Invoices />} />
+            </Route>
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={[1]} />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/customer" element={<Invoices />} />
+            </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 // Định nghĩa interface NavItemProps
 interface NavItemProps {
@@ -71,6 +72,7 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const { isEmployee } = useAuth();
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -84,9 +86,9 @@ const Sidebar = () => {
     { to: '/', icon: BarChart, label: 'Thống kê' },           
     { to: '/orders', icon: ShoppingCart, label: 'Đơn Hàng' }, 
     { to: '/products', icon: Package, label: 'Sản Phẩm' },    
-    { to: '/customers', icon: Users, label: 'Tài Khoản' },    
+    ...(isEmployee ? [] : [{ to: '/customers', icon: Users, label: 'Tài Khoản' }]),  
     { to: '/analytics', icon: Mail, label: 'Liên Hệ' },       
-    { to: '/invoices', icon: Ticket, label: 'Voucher' },      
+    ...(isEmployee ? [] : [{ to: '/invoices', icon: Ticket, label: 'Voucher' }]),      
     { to: '/inventory', icon: MessageSquare, label: 'Bình luận' }, 
     { to: '/combos', icon: Zap, label: 'Combo' },
     { to: '/Giaodien', icon: Calendar, label: 'Giao diện'}             

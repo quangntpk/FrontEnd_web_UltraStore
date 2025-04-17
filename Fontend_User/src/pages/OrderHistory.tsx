@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/Navigation";
+import { Link, useNavigate } from "react-router-dom";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -41,6 +42,10 @@ interface Order {
     price: number;
     image: string;
   }>;
+  tenNguoiNhan: string;
+  hinhThucThanhToan: string; 
+  lyDoHuy?: string; 
+  sdt: string;
 }
 
 interface OrderItemProps {
@@ -50,19 +55,24 @@ interface OrderItemProps {
 
 const OrderItem = ({ order, onCancel }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const statusInfo = orderStatuses[order.status];
+  const statusInfo = orderStatuses[order.status] || orderStatuses.pending;
   const StatusIcon = statusInfo.icon;
 
   return (
     <div className="border rounded-lg overflow-hidden mb-4 transition-all duration-200 hover:shadow-md">
       <div className="p-4 bg-gray-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <span className="font-medium">Mã đơn: {order.id}</span>
+          <span className="font-medium">Mã đơn hàng: {order.id || "N/A"}</span>
           <span className="text-sm text-muted-foreground">
-            Ngày đặt: {new Date(order.date).toLocaleDateString('vi-VN')}
+            Người nhận: {order.tenNguoiNhan || "N/A"}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            Ngày đặt: {order.date ? new Date(order.date).toLocaleDateString('vi-VN') : "N/A"}
+          </span>   
+          <span className="text-sm text-muted-foreground">
+            SĐT: {order.sdt || "N/A"}
           </span>
         </div>
-
         <div className="flex items-center gap-2">
           <span className={cn("w-3 h-3 rounded-full", statusInfo.color)}></span>
           <span className="text-sm font-medium flex items-center gap-1">
@@ -70,12 +80,14 @@ const OrderItem = ({ order, onCancel }: OrderItemProps) => {
             {statusInfo.label}
           </span>
         </div>
-
         <div className="text-right">
-          <div className="font-semibold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total)}</div>
-          <span className="text-sm text-muted-foreground">{order.items.length} sản phẩm</span>
+          <div className="font-semibold">
+            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total || 0)}
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {order.items?.length || 0} sản phẩm
+          </span>
         </div>
-
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -106,33 +118,35 @@ const OrderItem = ({ order, onCancel }: OrderItemProps) => {
           )}
         </div>
       </div>
-
       {isExpanded && (
         <div className="p-4 border-t">
           <div className="space-y-4">
-            {order.items.map((item) => (
+            {(order.items || []).map((item) => (
               <div key={item.id} className="flex items-center gap-4">
                 <div className="h-16 w-16 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                  <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                  <img
+                    src={item.image || "https://via.placeholder.com/150"}
+                    alt={item.name || "Sản phẩm"}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium">{item.name}</div>
+                  <div className="font-medium">{item.name || "N/A"}</div>
                   <div className="text-sm text-muted-foreground">
-                    Số lượng: {item.quantity} x {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}
+                    Số lượng: {item.quantity || 0} x {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price || 0)}
                   </div>
                 </div>
                 <div className="font-medium">
-                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.quantity * item.price)}
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format((item.quantity || 0) * (item.price || 0))}
                 </div>
               </div>
             ))}
           </div>
-
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between">
               <span>Tổng thanh toán:</span>
               <span className="font-bold text-lg">
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total)}
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total || 0)}
               </span>
             </div>
           </div>
@@ -143,11 +157,13 @@ const OrderItem = ({ order, onCancel }: OrderItemProps) => {
 };
 
 const OrderHistory = () => {
+  const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [orders, setOrders] = useState<Order[]>([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const cancelReasonsSuggestions = [
     "Không muốn mua nữa",
@@ -156,17 +172,148 @@ const OrderHistory = () => {
     "Khác"
   ];
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await axios.get('http://localhost:5261/api/user/orders');
-        setOrders(response.data);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
+  const mapStatus = (status: number): OrderStatus => {
+    switch (status) {
+      case 0:
+        return "pending";
+      case 1:
+        return "processing";
+      case 2:
+        return "shipping";
+      case 3:
+        return "completed";
+      case 4:
+        return "canceled";
+      default:
+        return "pending";
+    }
+  };
+
+  const fetchOrdersByUserId = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId || userId === "null" || userId === "undefined") {
+        alert("Vui lòng đăng nhập để xem lịch sử đơn hàng!");
+        navigate("/login");
+        return;
       }
-    };
-    fetchOrders();
-  }, []);
+
+      const response = await axios.get(`http://localhost:5261/api/orders/${userId}`);
+      const rawOrders = response.data;
+      if (!Array.isArray(rawOrders)) {
+        console.error("API did not return an array:", rawOrders);
+        setOrders([]);
+        return;
+      }
+
+      const mappedOrders = rawOrders.map((rawOrder: any) => {
+        let formattedDate = "";
+        if (rawOrder.ngayDat && typeof rawOrder.ngayDat === "string") {
+          const [day, month, year] = rawOrder.ngayDat.split("/");
+          formattedDate = `${year}-${month}-${day}`;
+        }
+
+        return {
+          id: rawOrder.maDonHang.toString(),
+          date: formattedDate,
+          status: mapStatus(rawOrder.trangThaiDonHang),
+          total: rawOrder.tongTien,
+          items: rawOrder.sanPhams.map((item: any) => ({
+            id: item.maChiTietDhPues,
+            name: item.tenSanPham,
+            quantity: item.soLuong,
+            price: item.gia,
+            image: item.hinhAnh || "https://via.placeholder.com/150",
+          })),
+          tenNguoiNhan: rawOrder.tenNguoiNhan,
+          hinhThucThanhToan: rawOrder.hinhThucThanhToan,
+          sdt: rawOrder.thongTinNguoiDung.sdt,
+          lyDoHuy: rawOrder.lyDoHuy,
+        };
+      });
+
+      setOrders(mappedOrders);
+    } catch (error: any) {
+      console.error("Error fetching orders:", error);
+      alert(error.response?.data?.message || "Đã xảy ra lỗi khi tải lịch sử đơn hàng!");
+      setOrders([]);
+    }
+  };
+
+  const searchOrders = async (query: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vui lòng đăng nhập để tra cứu đơn hàng!");
+        navigate("/login");
+        return;
+      }
+
+      const response = await axios.get('http://localhost:5261/api/user/orders/search', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          query: query || undefined,
+        },
+      });
+
+      const rawOrders = response.data;
+      if (!Array.isArray(rawOrders)) {
+        console.error("API did not return an array:", rawOrders);
+        setOrders([]);
+        return;
+      }
+
+      const mappedOrders = rawOrders.map((rawOrder: any) => ({
+        id: rawOrder.id,
+        date: rawOrder.date,
+        status: rawOrder.status,
+        total: rawOrder.total,
+        items: rawOrder.items.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          image: item.image,
+        })),
+        tenNguoiNhan: rawOrder.tenNguoiNhan,
+        hinhThucThanhToan: rawOrder.hinhThucThanhToan,
+        sdt: rawOrder.sdt,
+        lyDoHuy: rawOrder.lyDoHuy,
+      }));
+
+      setOrders(mappedOrders);
+    } catch (error: any) {
+      console.error("Error searching orders:", error);
+      if (error.response?.status === 401) {
+        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        alert(error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!");
+        setOrders([]);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchOrdersByUserId();
+  }, [navigate]);
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      alert("Vui lòng nhập mã đơn hàng để tìm kiếm!");
+      return;
+    }
+    searchOrders(searchQuery);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const filteredOrders = filterStatus === "all"
     ? orders
@@ -186,13 +333,14 @@ const OrderHistory = () => {
     if (cancelOrderId === null) return;
 
     try {
-      const orderIdNumber = parseInt(cancelOrderId.replace('ORD-', '')); // Chuyển đổi từ "ORD-00016" thành số 16
+      const orderIdNumber = parseInt(cancelOrderId);
       await axios.put(
-        `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
+        `http://localhost:5261/api/orders/cancel/${orderIdNumber}`,
         cancelReason,
         {
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
@@ -200,11 +348,16 @@ const OrderHistory = () => {
       setShowCancelModal(false);
       setCancelReason('');
       setCancelOrderId(null);
-      const response = await axios.get('http://localhost:5261/api/user/orders');
-      setOrders(response.data);
-    } catch (error) {
-      console.error('Error canceling order:', error);
-      alert(error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng.");
+      fetchOrdersByUserId(); // Gọi lại API để cập nhật danh sách
+    } catch (error: any) {
+      console.error("Error canceling order:", error);
+      if (error.response?.status === 401) {
+        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        alert(error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng.");
+      }
     }
   };
 
@@ -284,26 +437,39 @@ const OrderHistory = () => {
                 <div className="mb-6">
                   <h2 className="text-lg font-medium mb-4">Tra cứu đơn hàng</h2>
                   <div className="flex gap-4">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        placeholder="Nhập mã đơn hàng của bạn"
-                        className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <Button className="gradient-bg">
+                    <Input
+                      type="text"
+                      placeholder="Nhập mã đơn hàng của bạn"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleSearch} className="gradient-bg">
                       <Eye className="mr-2 h-4 w-4" /> Kiểm tra
                     </Button>
                   </div>
                 </div>
 
-                <div className="text-center py-12 border rounded-lg">
-                  <Truck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">Nhập mã đơn hàng để kiểm tra</h3>
-                  <p className="text-muted-foreground">
-                    Bạn có thể tra cứu tình trạng đơn hàng bằng mã đơn hàng
-                  </p>
-                </div>
+                {filteredOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {filteredOrders.map(order => (
+                      <OrderItem
+                        key={order.id}
+                        order={order}
+                        onCancel={handleCancelClick}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 border rounded-lg">
+                    <Truck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">Không tìm thấy đơn hàng</h3>
+                    <p className="text-muted-foreground">
+                      Vui lòng nhập mã đơn hàng để kiểm tra
+                    </p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
@@ -312,7 +478,6 @@ const OrderHistory = () => {
 
       <Footer />
 
-      {/* Modal hủy đơn hàng */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
         <DialogContent>
           <DialogHeader>
