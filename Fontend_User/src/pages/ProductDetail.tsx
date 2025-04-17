@@ -7,6 +7,7 @@ import { Heart, ShoppingBag, Star } from "lucide-react";
 import Swal from "sweetalert2";
 import InpaintForm from "./Inpaint";
 import Comment from "./Comment";
+import ChonSize from "./ChonSize";
 
 // Component thông báo tùy chỉnh
 const Notification = ({ message, type, onClose }) => {
@@ -334,7 +335,12 @@ const ProductDetail = () => {
               </div>
               {currentProduct && (
                 <div>
-                  <h3 className="text-sm font-medium mb-3">Kích Thước</h3>
+                  <div className="flex items-center">
+                    <h3 className="text-sm font-medium mb-3">Kích Thước</h3>
+                    <div className="ml-[100px]">
+                      <ChonSize />
+                    </div>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {availableSizes.map((sizeObj, index) => (
                       <button

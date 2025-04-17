@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// Định nghĩa interface cho dữ liệu GiaoDien
 interface GiaoDienView {
   maGiaoDien?: number;
   logo?: string;
@@ -15,12 +14,20 @@ interface GiaoDienView {
   trangThai?: number;
 }
 
-const HeroWithSlider: React.FC = () => {
+interface LoaiSanPhamView {
+  maLoaiSanPham?: number;
+  tenLoaiSanPham?: string;
+  kiHieu?: string;
+  hinhAnh?: string;
+}
+
+const Hero: React.FC = () => {
   const [sliderData, setSliderData] = useState<GiaoDienView | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [loaiSanPhams, setLoaiSanPhams] = useState<LoaiSanPhamView[]>([]);
   const [loading, setLoading] = useState(true);
+  const categorySliderRef = useRef<HTMLDivElement>(null);
 
-  // Fetch dữ liệu giao diện từ API
   useEffect(() => {
     const fetchSliderData = async () => {
       try {
@@ -29,12 +36,9 @@ const HeroWithSlider: React.FC = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data: GiaoDienView[] = await response.json();
-        console.log("Dữ liệu API:", data);
         const activeGiaoDien = data.find((item) => item.trangThai === 1);
         if (activeGiaoDien) {
           setSliderData(activeGiaoDien);
-        } else {
-          console.warn("Không tìm thấy giao diện đang hoạt động.");
         }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu slider:", error);
@@ -46,7 +50,23 @@ const HeroWithSlider: React.FC = () => {
     fetchSliderData();
   }, []);
 
-  // Chuyển slide tự động mỗi 8 giây
+  useEffect(() => {
+    const fetchLoaiSanPhams = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/LoaiSanPham");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: LoaiSanPhamView[] = await response.json();
+        setLoaiSanPhams(data);
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu loại sản phẩm:", error);
+      }
+    };
+
+    fetchLoaiSanPhams();
+  }, []);
+
   useEffect(() => {
     if (!sliderData) return;
 
@@ -56,32 +76,23 @@ const HeroWithSlider: React.FC = () => {
     if (slides.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => {
-        const nextSlide = (prev + 1) % slides.length;
-        // Đảm bảo khi chuyển từ slider 4 về slider 3, thời gian vẫn là 8 giây
-        if (prev === 3 && nextSlide === 2) {
-          return nextSlide;
-        }
-        return nextSlide;
-      });
-    }, 8000); // Chuyển slide mỗi 8 giây
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [sliderData]);
 
-  // Hàm chuyển base64 thành URL hình ảnh
   const getImageSrc = (base64?: string): string => {
-    if (!base64) return "/fallback-image.jpg"; // Trả về ảnh mặc định nếu không có dữ liệu
+    if (!base64) return "/fallback-image.jpg";
     if (base64.startsWith("/9j/")) {
       return `data:image/jpeg;base64,${base64}`;
     }
     if (base64.startsWith("iVBORw0KGgo")) {
       return `data:image/png;base64,${base64}`;
     }
-    return `data:image/png;base64,${base64}`; // Mặc định PNG
+    return `data:image/png;base64,${base64}`;
   };
 
-  // Hàm chuyển slide thủ công
   const nextSlide = () => {
     const slides = [sliderData?.slider1, sliderData?.slider2, sliderData?.slider3, sliderData?.slider4]
       .filter((slide): slide is string => Boolean(slide));
@@ -98,7 +109,20 @@ const HeroWithSlider: React.FC = () => {
     }
   };
 
-  // Xử lý trạng thái loading
+  const nextCategory = () => {
+    if (categorySliderRef.current) {
+      const width = categorySliderRef.current.offsetWidth;
+      categorySliderRef.current.scrollBy({ left: width, behavior: "smooth" });
+    }
+  };
+
+  const prevCategory = () => {
+    if (categorySliderRef.current) {
+      const width = categorySliderRef.current.offsetWidth;
+      categorySliderRef.current.scrollBy({ left: -width, behavior: "smooth" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[400px] flex items-center justify-center text-gray-500">
@@ -110,7 +134,6 @@ const HeroWithSlider: React.FC = () => {
   const slides = [sliderData?.slider1, sliderData?.slider2, sliderData?.slider3, sliderData?.slider4]
     .filter((slide): slide is string => Boolean(slide));
 
-  // Xử lý khi không có dữ liệu slider
   if (!sliderData || slides.length === 0) {
     return (
       <div className="min-h-[400px] flex items-center justify-center text-gray-500">
@@ -124,7 +147,6 @@ const HeroWithSlider: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="h-12"></div>
 
-        {/* Slider container với kích thước cố định */}
         <div className="relative w-full max-w-[1800px] h-[400px] mx-auto rounded-lg overflow-hidden shadow-lg">
           <div className="w-full h-full overflow-hidden">
             <div
@@ -139,18 +161,17 @@ const HeroWithSlider: React.FC = () => {
                     className="w-full h-full object-cover"
                     onError={(e) => (e.currentTarget.src = "/fallback-image.jpg")}
                   />
-                  {/* Nút "Xem Nhanh" và "Cửa Hàng" ở góc trái dưới */}
                   <div className="absolute bottom-16 left-16 z-20">
                     <div className="flex flex-col sm:flex-row gap-4">
                       <a
                         href="#products"
-                        className="inline-flex items-center justify-center h-12 px-6 bg-white text-purple-500 border border-purple-500 rounded-full hover:bg-purple-50 transition-opacity"
+                        className="inline-flex items-center justify-center h-12 px-6 bg-white text-purple-500 border-2 border-purple-500 rounded-full hover:bg-purple-50 transition-opacity font-bold"
                       >
                         Xem Nhanh
                       </a>
                       <Link
                         to="/products"
-                        className="inline-flex items-center justify-center h-12 px-6 border border-purple-500 text-purple-500 rounded-full hover:bg-purple-50 transition-colors"
+                        className="inline-flex items-center justify-center h-12 px-6 bg-purple-500 text-white border-2 border-purple-500 rounded-full hover:bg-purple-600 transition-colors font-bold italic"
                       >
                         Cửa Hàng
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -162,7 +183,6 @@ const HeroWithSlider: React.FC = () => {
             </div>
           </div>
 
-          {/* Nút điều hướng */}
           <button
             onClick={prevSlide}
             className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors z-20"
@@ -178,7 +198,6 @@ const HeroWithSlider: React.FC = () => {
             <ChevronRight className="h-6 w-6" />
           </button>
 
-          {/* Chỉ mục slider */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 z-20">
             {slides.map((_, index) => (
               <button
@@ -193,9 +212,56 @@ const HeroWithSlider: React.FC = () => {
             ))}
           </div>
         </div>
+
+        <h2 className="text-2xl font-bold text-purple-500 mt-8 mb-4">DANH MỤC</h2>
+
+        <div className="relative w-full max-w-[1800px] mx-auto">
+          {loaiSanPhams.length > 0 ? (
+            <>
+              <div
+                ref={categorySliderRef}
+                className="w-full overflow-x-auto h-[200px] flex space-x-4"
+                style={{ scrollBehavior: "smooth" }}
+              >
+                {loaiSanPhams.map((loai, index) => (
+                  <div key={index} className="flex-shrink-0 w-32 text-center">
+                    <Link to={`/products?category=${loai.tenLoaiSanPham}`}>
+                      <img
+                        src={getImageSrc(loai.hinhAnh)}
+                        alt={loai.tenLoaiSanPham}
+                        className="w-24 h-24 rounded-full object-cover mx-auto"
+                        onError={(e) => (e.currentTarget.src = "/fallback-image.jpg")}
+                      />
+                      <p className="mt-2 text-sm font-semibold">{loai.tenLoaiSanPham}</p>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={prevCategory}
+                className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors z-20"
+                aria-label="Previous category"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                onClick={nextCategory}
+                className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors z-20"
+                aria-label="Next category"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          ) : (
+            <div className="mt-8 text-center text-gray-500">
+              Không có loại sản phẩm để hiển thị
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
 };
 
-export default HeroWithSlider;
+export default Hero;

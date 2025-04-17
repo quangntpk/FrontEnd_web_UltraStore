@@ -37,7 +37,6 @@ import {
   LineElement,
 } from "chart.js";
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -50,7 +49,6 @@ ChartJS.register(
   LineElement
 );
 
-// Interfaces
 interface Account {
   maNguoiDung: string;
   hoTen: string;
@@ -122,7 +120,7 @@ const AccountManagement = () => {
   const [taiKhoan, setTaiKhoan] = useState("");
   const [matKhau, setMatKhau] = useState("");
   const [vaiTro, setVaiTro] = useState(0);
-  const [trangThai, setTrangThai] = useState(1);
+  const [trangThai, setTrangThai] = useState(0);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -139,7 +137,7 @@ const AccountManagement = () => {
   const [chiTietTaiKhoan, setChiTietTaiKhoan] = useState("");
   const [chiTietDiaChi, setChiTietDiaChi] = useState("");
   const [chiTietVaiTro, setChiTietVaiTro] = useState(0);
-  const [chiTietTrangThai, setChiTietTrangThai] = useState(1);
+  const [chiTietTrangThai, setChiTietTrangThai] = useState(0);
   const [chiTietHinhAnh, setChiTietHinhAnh] = useState<string | null>(null);
   const [chiTietMoTa, setChiTietMoTa] = useState("");
   const [chiTietGioiTinh, setChiTietGioiTinh] = useState(0);
@@ -182,7 +180,7 @@ const AccountManagement = () => {
   };
 
   const statusChartData = {
-    labels: ["Hoạt động", "Bị khóa"],
+    labels: ["Hoạt động", "Khóa"],
     datasets: [
       {
         data: [statusData.active, statusData.locked],
@@ -289,8 +287,8 @@ const AccountManagement = () => {
     let usersThisYear = 0;
 
     accounts.forEach((account) => {
-      if (account.trangThai === 1) activeUsers++;
-      else if (account.trangThai === 0) lockedUsers++;
+      if (account.trangThai === 0) activeUsers++;
+      else if (account.trangThai === 1) lockedUsers++;
 
       const creationDate = new Date(account.ngayTao);
       if (creationDate >= startOfDay) usersToday++;
@@ -321,8 +319,8 @@ const AccountManagement = () => {
   const calculateStatusData = useCallback(() => {
     const statusCounts = { active: 0, locked: 0 };
     accounts.forEach((account) => {
-      if (account.trangThai === 1) statusCounts.active++;
-      else if (account.trangThai === 0) statusCounts.locked++;
+      if (account.trangThai === 0) statusCounts.active++;
+      else if (account.trangThai === 1) statusCounts.locked++;
     });
     setStatusData(statusCounts);
   }, [accounts]);
@@ -374,8 +372,8 @@ const AccountManagement = () => {
       roleFilter === "all" || getRoleString(account.vaiTro) === roleFilter;
     const matchesStatus =
       statusFilter === "all" ||
-      (statusFilter === "active" && account.trangThai === 1) ||
-      (statusFilter === "locked" && account.trangThai === 0);
+      (statusFilter === "active" && account.trangThai === 0) ||
+      (statusFilter === "locked" && account.trangThai === 1);
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -389,7 +387,6 @@ const AccountManagement = () => {
     currentPage * pageSize
   );
 
-  // Validation functions
   const validateHoTen = (hoTen: string) => {
     if (hoTen.length <= 5) return "Họ tên phải dài hơn 5 ký tự";
     return "";
@@ -437,15 +434,52 @@ const AccountManagement = () => {
   };
 
   const validateLockoutEndDate = (lockoutEndDate: string | null, trangThai: number) => {
-    if (trangThai === 0 && lockoutEndDate) {
+    if (trangThai === 1 && !lockoutEndDate) {
+      return "Ngày kết thúc khóa là bắt buộc khi trạng thái là Khóa";
+    }
+    if (trangThai === 1 && lockoutEndDate) {
       const selectedDate = new Date(lockoutEndDate);
       const today = new Date();
-      if (selectedDate < today) return "Ngày kết thúc khóa không được là ngày trong quá khứ";
+      if (selectedDate <= today) return "Ngày kết thúc khóa phải là ngày trong tương lai";
     }
     return "";
   };
 
-  // Input restriction handlers
+  // Hàm kiểm tra trùng lặp
+  const validateTaiKhoanUnique = (taiKhoan: string, currentMaNguoiDung?: string) => {
+    const existingAccount = accounts.find(
+      (account) => account.taiKhoan === taiKhoan && account.maNguoiDung !== currentMaNguoiDung
+    );
+    if (existingAccount) return "Tài khoản đã tồn tại";
+    return "";
+  };
+
+  const validateEmailUnique = (email: string, currentMaNguoiDung?: string) => {
+    const existingAccount = accounts.find(
+      (account) => account.email === email && account.maNguoiDung !== currentMaNguoiDung
+    );
+    if (existingAccount) return "Email đã tồn tại";
+    return "";
+  };
+
+  const validateSdtUnique = (sdt: string, currentMaNguoiDung?: string) => {
+    if (!sdt) return "";
+    const existingAccount = accounts.find(
+      (account) => account.sdt === sdt && account.maNguoiDung !== currentMaNguoiDung
+    );
+    if (existingAccount) return "Số điện thoại đã tồn tại";
+    return "";
+  };
+
+  const validateCccdUnique = (cccd: string, currentMaNguoiDung?: string) => {
+    if (!cccd) return "";
+    const existingAccount = accounts.find(
+      (account) => account.cccd === cccd && account.maNguoiDung !== currentMaNguoiDung
+    );
+    if (existingAccount) return "CCCD đã tồn tại";
+    return "";
+  };
+
   const handleSdtInput = (e: React.FormEvent<HTMLInputElement>) => {
     const value = e.currentTarget.value;
     if (/^\d{0,10}$/.test(value)) setChiTietSdt(value);
@@ -456,7 +490,6 @@ const AccountManagement = () => {
     if (/^\d{0,12}$/.test(value)) setChiTietCccd(value);
   };
 
-  // Modal handlers
   const openAddModal = () => {
     setFormMode("add");
     setSelectedAccount(null);
@@ -464,8 +497,10 @@ const AccountManagement = () => {
     setEmail("");
     setTaiKhoan("");
     setMatKhau("");
+    setSdt("");
+    setCCCD("");
     setVaiTro(0);
-    setTrangThai(1);
+    setTrangThai(0);
     setLockoutEndDate(null);
     setErrors({});
     setModalOpen(true);
@@ -526,7 +561,7 @@ const AccountManagement = () => {
     setChiTietMoTa(account.moTa || "");
     setChiTietGioiTinh(account.gioiTinh || 0);
     setChiTietLockoutEndDate(
-      account.trangThai === 1 ? null : account.lockoutEndDate ? new Date(account.lockoutEndDate).toISOString().split("T")[0] : null
+      account.trangThai === 0 ? null : account.lockoutEndDate ? new Date(account.lockoutEndDate).toISOString().split("T")[0] : null
     );
     setErrors({});
     setUpdateChiTietModalOpen(true);
@@ -561,7 +596,7 @@ const AccountManagement = () => {
         diaChi: accountToChangeStatus.diaChi,
         vaiTro: accountToChangeStatus.vaiTro,
         trangThai: newStatus,
-        ...(newStatus === 0
+        ...(newStatus === 1
           ? {
               cancelCount: 4,
               lockoutEndDate: new Date(
@@ -585,7 +620,7 @@ const AccountManagement = () => {
         throw new Error(errorData.message || "Lỗi khi cập nhật trạng thái");
       }
 
-      fetchAccounts();
+      await fetchAccounts();
       setNotification({
         message: "Cập nhật trạng thái thành công",
         type: "success",
@@ -607,7 +642,6 @@ const AccountManagement = () => {
     }
   };
 
-  // Form submission with validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -618,9 +652,18 @@ const AccountManagement = () => {
     if (formMode === "add") {
       newErrors.matKhau = validateMatKhau(matKhau);
     }
-    if (trangThai === 0 && lockoutEndDate) {
+    if (trangThai === 1) {
       newErrors.lockoutEndDate = validateLockoutEndDate(lockoutEndDate, trangThai);
     }
+    newErrors.sdt = validateSdt(sdt);
+    newErrors.cccd = validateCccd(cccd);
+
+    // Kiểm tra trùng lặp
+    const currentMaNguoiDung = selectedAccount?.maNguoiDung;
+    newErrors.taiKhoanUnique = validateTaiKhoanUnique(taiKhoan, currentMaNguoiDung);
+    newErrors.emailUnique = validateEmailUnique(email, currentMaNguoiDung);
+    newErrors.sdtUnique = validateSdtUnique(sdt, currentMaNguoiDung);
+    newErrors.cccdUnique = validateCccdUnique(cccd, currentMaNguoiDung);
 
     setErrors(newErrors);
 
@@ -633,6 +676,8 @@ const AccountManagement = () => {
             email,
             taiKhoan,
             matKhau,
+            sdt,
+            cccd,
             vaiTro,
             trangThai,
             ngayTao: new Date().toISOString(),
@@ -647,10 +692,10 @@ const AccountManagement = () => {
             cccd,
             diaChi,
             cancelCount: cancelCount || 0,
-            lockoutEndDate: trangThai === 1 ? null : lockoutEndDate,
+            lockoutEndDate: trangThai === 0 ? null : lockoutEndDate,
             vaiTro,
             trangThai,
-            ...(trangThai === 0 && !lockoutEndDate
+            ...(trangThai === 1 && !lockoutEndDate
               ? {
                   lockoutEndDate: new Date(
                     Date.now() + 3 * 24 * 60 * 60 * 1000
@@ -699,7 +744,7 @@ const AccountManagement = () => {
       }
 
       setModalOpen(false);
-      fetchAccounts();
+      await fetchAccounts();
       setNotification({
         message:
           formMode === "add"
@@ -721,7 +766,6 @@ const AccountManagement = () => {
     }
   };
 
-  // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -772,9 +816,14 @@ const AccountManagement = () => {
     newErrors.chiTietSdt = validateSdt(chiTietSdt);
     newErrors.chiTietCccd = validateCccd(chiTietCccd);
     newErrors.chiTietNgaySinh = validateNgaySinh(chiTietNgaySinh);
-    if (chiTietTrangThai === 0 && chiTietLockoutEndDate) {
-      newErrors.chiTietLockoutEndDate = validateLockoutEndDate(chiTietLockoutEndDate, chiTietTrangThai);
-    }
+    newErrors.chiTietLockoutEndDate = validateLockoutEndDate(chiTietLockoutEndDate, chiTietTrangThai);
+
+    // Kiểm tra trùng lặp
+    const currentMaNguoiDung = selectedAccount?.maNguoiDung;
+    newErrors.chiTietTaiKhoanUnique = validateTaiKhoanUnique(chiTietTaiKhoan, currentMaNguoiDung);
+    newErrors.chiTietEmailUnique = validateEmailUnique(chiTietEmail, currentMaNguoiDung);
+    newErrors.chiTietSdtUnique = validateSdtUnique(chiTietSdt, currentMaNguoiDung);
+    newErrors.chiTietCccdUnique = validateCccdUnique(chiTietCccd, currentMaNguoiDung);
 
     setErrors(newErrors);
 
@@ -804,11 +853,10 @@ const AccountManagement = () => {
     formData.append("MoTa", chiTietMoTa || "");
     formData.append("GioiTinh", chiTietGioiTinh.toString());
 
-    // Xử lý LockoutEndDate dựa trên trạng thái
-    if (chiTietTrangThai === 0 && chiTietLockoutEndDate) {
+    if (chiTietTrangThai === 1 && chiTietLockoutEndDate) {
       formData.append("LockoutEndDate", chiTietLockoutEndDate);
-    } else if (chiTietTrangThai === 1) {
-      formData.append("LockoutEndDate", "null");
+    } else {
+      formData.append("LockoutEndDate", "");
     }
 
     if (chiTietHinhAnh && chiTietHinhAnh.startsWith("blob:")) {
@@ -837,14 +885,16 @@ const AccountManagement = () => {
         throw new Error(responseData.message || "Lỗi khi cập nhật chi tiết người dùng");
       }
 
+      await fetchAccounts();
       setNotification({
         message: "Cập nhật chi tiết người dùng thành công",
         type: "success",
         show: true,
         duration: 3000,
       });
+
+
       setUpdateChiTietModalOpen(false);
-      fetchAccounts();
     } catch (err) {
       setNotification({
         message: (err as Error).message || "Lỗi khi cập nhật chi tiết người dùng",
@@ -888,7 +938,7 @@ const AccountManagement = () => {
 
       setDeleteModalOpen(false);
       setAccountToDelete(null);
-      fetchAccounts();
+      await fetchAccounts();
       setNotification({
         message: "Xóa tài khoản thành công",
         type: "success",
@@ -1028,9 +1078,11 @@ const AccountManagement = () => {
                               : defaultAvatar || "https://www.pinterest.com/pin/872009546602893250"
                           }
                           alt="Avatar"
-                          className="w-16 h-16 rounded-full mx-auto mt-4 object-cover"
+                          className="w-16 h-16 rounded-full mx-auto mt-4 object-cover cursor-pointer hover:scale-105 transition-transform"
+                          onClick={() => openViewModal(account)}
                         />
                       </TableCell>
+
                       <TableCell>{account.hoTen}</TableCell>
                       <TableCell>{account.email}</TableCell>
                       <TableCell>{account.taiKhoan || ""}</TableCell>
@@ -1042,8 +1094,8 @@ const AccountManagement = () => {
                           <input
                             type="checkbox"
                             className="opacity-0 w-0 h-0"
-                            checked={account.trangThai === 1}
-                            onChange={(e) => openConfirmStatusModal(account, e.target.checked ? 1 : 0)}
+                            checked={account.trangThai === 0}
+                            onChange={(e) => openConfirmStatusModal(account, e.target.checked ? 0 : 1)}
                             disabled={isSubmitting}
                           />
                           <span
@@ -1051,13 +1103,13 @@ const AccountManagement = () => {
                               before:absolute before:h-[30px] before:w-[30px] before:left-[2px] before:bottom-[2px]
                               before:bg-white before:rounded-full before:shadow-md before:transition-all before:duration-300 before:ease-in-out
                               ${
-                                account.trangThai === 1
+                                account.trangThai === 0
                                   ? "bg-green-600 before:translate-x-[26px]"
                                   : "bg-gray-400"
                               } hover:scale-110 shadow-sm hover:shadow-md`}
                           ></span>
                           <span className="sr-only">
-                            {account.trangThai === 1 ? "Hoạt động" : "Khóa"}
+                            {account.trangThai === 0 ? "Hoạt động" : "Khóa"}
                           </span>
                         </label>
                       </TableCell>
@@ -1194,6 +1246,7 @@ const AccountManagement = () => {
               <label className="block text-sm font-medium">Email</label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              {errors.emailUnique && <p className="text-red-500 text-sm mt-1">{errors.emailUnique}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium">Tài Khoản</label>
@@ -1204,6 +1257,9 @@ const AccountManagement = () => {
                 required
               />
               {errors.taiKhoan && <p className="text-red-500 text-sm mt-1">{errors.taiKhoan}</p>}
+              {errors.taiKhoanUnique && (
+                <p className="text-red-500 text-sm mt-1">{errors.taiKhoanUnique}</p>
+              )}
             </div>
             {formMode === "add" && (
               <div>
@@ -1245,11 +1301,11 @@ const AccountManagement = () => {
                 onChange={(e) => setTrangThai(parseInt(e.target.value))}
                 className="border rounded p-2 w-full"
               >
-                <option value={1}>Hoạt động</option>
-                <option value={0}>Khóa</option>
+                <option value={0}>Hoạt động</option>
+                <option value={1}>Khóa</option>
               </select>
             </div>
-            {trangThai === 0 && (
+            {trangThai === 1 && (
               <div>
                 <label className="block text-sm font-medium">Ngày Kết Thúc Khóa</label>
                 <Input
@@ -1257,6 +1313,7 @@ const AccountManagement = () => {
                   value={lockoutEndDate || ""}
                   onChange={(e) => setLockoutEndDate(e.target.value)}
                   min={new Date().toISOString().split("T")[0]}
+                  required
                 />
                 {errors.lockoutEndDate && (
                   <p className="text-red-500 text-sm mt-1">{errors.lockoutEndDate}</p>
@@ -1304,7 +1361,7 @@ const AccountManagement = () => {
         <DialogContent className="p-6">
           <DialogTitle>Xác nhận thay đổi trạng thái</DialogTitle>
           <DialogDescription>
-            Bạn có chắc chắn muốn {newStatus === 1 ? "mở khóa" : "khóa"} tài khoản{" "}
+            Bạn có chắc chắn muốn {newStatus === 0 ? "mở khóa" : "khóa"} tài khoản{" "}
             <strong>{accountToChangeStatus?.taiKhoan}</strong> không?
           </DialogDescription>
           <div className="flex justify-end space-x-2 mt-4">
@@ -1325,21 +1382,20 @@ const AccountManagement = () => {
           {viewAccount && (
             <div className="grid grid-cols-3 gap-6">
               <div className="col-span-1 space-y-4">
-              <div>
-                <label className="block text-sm font-medium">Hình Ảnh</label>
-                <img
-                  src={
-                    viewAccount.hinhAnh
-                      ? viewAccount.hinhAnh.startsWith("data:image")
-                        ? viewAccount.hinhAnh
-                        : `data:image/png;base64,${viewAccount.hinhAnh}`
-                      : defaultAvatar || "https://www.pinterest.com/pin/872009546602893250"
-                  }
-                  alt="Avatar"
-                  className="mt-2 w-64 h-64 object-cover rounded-full border-2 border-purple-500"
-                />
-              </div>
-
+                <div>
+                  <label className="block text-sm font-medium">Hình Ảnh</label>
+                  <img
+                    src={
+                      viewAccount.hinhAnh
+                        ? viewAccount.hinhAnh.startsWith("data:image")
+                          ? viewAccount.hinhAnh
+                          : `data:image/png;base64,${viewAccount.hinhAnh}`
+                        : defaultAvatar || "https://www.pinterest.com/pin/872009546602893250"
+                    }
+                    alt="Avatar"
+                    className="mt-2 w-64 h-64 object-cover rounded-full border-2 border-purple-500"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium">Mô Tả</label>
                   <textarea
@@ -1391,7 +1447,7 @@ const AccountManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium">Trạng Thái</label>
-                  <Input value={viewAccount.trangThai === 1 ? "Hoạt động" : "Khóa"} disabled className="text-black" />
+                  <Input value={viewAccount.trangThai === 0 ? "Hoạt động" : "Khóa"} disabled className="text-black" />
                 </div>
               </div>
               <div className="col-span-1 space-y-4">
@@ -1454,49 +1510,48 @@ const AccountManagement = () => {
           </DialogDescription>
           <form onSubmit={handleUpdateChiTietSubmit} className="grid grid-cols-3 gap-6">
             <div className="col-span-1 space-y-4">
-            <div>
-              <label className="block text-sm font-medium">Hình Ảnh</label>
-              <div
-                className={`mt-2 w-32 h-32 border-2 border-dashed rounded-lg relative flex items-center justify-center cursor-pointer ${
-                  isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={handleImageClick}
-              >
-                {chiTietHinhAnh ? (
-                  <>
-                    <img
-                      src={chiTietHinhAnh}
-                      alt="Avatar"
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                    <button
-                      className="absolute top-3 right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChiTietHinhAnh(null);
-                      }}
-                    >
-                      X
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-gray-500 text-sm text-center">
-                    Nhấp để chọn hình ảnh
-                  </span>
-                )}
+              <div>
+                <label className="block text-sm font-medium">Hình Ảnh</label>
+                <div
+                  className={`mt-2 w-32 h-32 border-2 border-dashed rounded-lg relative flex items-center justify-center cursor-pointer ${
+                    isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={handleImageClick}
+                >
+                  {chiTietHinhAnh ? (
+                    <>
+                      <img
+                        src={chiTietHinhAnh}
+                        alt="Avatar"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <button
+                        className="absolute top-3 right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setChiTietHinhAnh(null);
+                        }}
+                      >
+                        X
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-gray-500 text-sm text-center">
+                      Nhấp để chọn hình ảnh
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
               <div>
                 <label className="block text-sm font-medium">Mô Tả</label>
                 <textarea
@@ -1507,7 +1562,7 @@ const AccountManagement = () => {
                   placeholder="Nhập mô tả..."
                 />
               </div>
-              {chiTietTrangThai === 0 && (
+              {chiTietTrangThai === 1 && (
                 <div>
                   <label className="block text-sm font-medium">Ngày Kết Thúc Khóa</label>
                   <Input
@@ -1515,6 +1570,7 @@ const AccountManagement = () => {
                     value={chiTietLockoutEndDate || ""}
                     onChange={(e) => setChiTietLockoutEndDate(e.target.value)}
                     min={new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split("T")[0]}
+                    required
                   />
                   {errors.chiTietLockoutEndDate && (
                     <p className="text-red-500 text-sm mt-1">{errors.chiTietLockoutEndDate}</p>
@@ -1530,6 +1586,9 @@ const AccountManagement = () => {
                   onChange={(e) => setChiTietTaiKhoan(e.target.value)}
                   disabled
                 />
+                {errors.chiTietTaiKhoanUnique && (
+                  <p className="text-red-500 text-sm mt-1">{errors.chiTietTaiKhoanUnique}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">Họ Tên</label>
@@ -1560,12 +1619,12 @@ const AccountManagement = () => {
                   onChange={(e) => {
                     const newStatus = parseInt(e.target.value);
                     setChiTietTrangThai(newStatus);
-                    if (newStatus === 1) setChiTietLockoutEndDate(null);
+                    if (newStatus === 0) setChiTietLockoutEndDate(null);
                   }}
                   className="border rounded p-2 w-full"
                 >
-                  <option value={1}>Hoạt động</option>
-                  <option value={0}>Khóa</option>
+                  <option value={0}>Hoạt động</option>
+                  <option value={1}>Khóa</option>
                 </select>
               </div>
               <div>
@@ -1602,6 +1661,9 @@ const AccountManagement = () => {
                   maxLength={10}
                 />
                 {errors.chiTietSdt && <p className="text-red-500 text-sm mt-1">{errors.chiTietSdt}</p>}
+                {errors.chiTietSdtUnique && (
+                  <p className="text-red-500 text-sm mt-1">{errors.chiTietSdtUnique}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">Email</label>
@@ -1613,6 +1675,9 @@ const AccountManagement = () => {
                 {errors.chiTietEmail && (
                   <p className="text-red-500 text-sm mt-1">{errors.chiTietEmail}</p>
                 )}
+                {errors.chiTietEmailUnique && (
+                  <p className="text-red-500 text-sm mt-1">{errors.chiTietEmailUnique}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">CCCD</label>
@@ -1623,6 +1688,9 @@ const AccountManagement = () => {
                   maxLength={12}
                 />
                 {errors.chiTietCccd && <p className="text-red-500 text-sm mt-1">{errors.chiTietCccd}</p>}
+                {errors.chiTietCccdUnique && (
+                  <p className="text-red-500 text-sm mt-1">{errors.chiTietCccdUnique}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">Địa Chỉ</label>

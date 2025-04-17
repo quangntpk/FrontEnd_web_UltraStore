@@ -90,21 +90,27 @@ const ImageUpload: React.FC<{
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file && file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024) { // Giới hạn 5MB
       const reader = new FileReader();
       reader.onload = () => setPreview(reader.result as string);
       reader.readAsDataURL(file);
       onImageChange(file);
+    } else {
+      onImageChange(null);
+      setPreview(null);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file && file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024) {
       const reader = new FileReader();
       reader.onload = () => setPreview(reader.result as string);
       reader.readAsDataURL(file);
       onImageChange(file);
+    } else {
+      onImageChange(null);
+      setPreview(null);
     }
   };
 
@@ -147,13 +153,13 @@ const ImageUpload: React.FC<{
             </button>
           </div>
         ) : (
-          <p className="text-gray-500">Kéo thả hình ảnh hoặc nhấp để chọn tệp</p>
+          <p className="text-gray-500">Kéo thả hình ảnh hoặc nhấp để chọn tệp (tối đa 5MB)</p>
         )}
         <Input
           type="file"
           id={id}
           name={id}
-          accept="image/*"
+          accept="image/png,image/jpeg"
           className="hidden"
           ref={fileInputRef}
           onChange={handleFileChange}
@@ -177,8 +183,7 @@ const CreateForm: React.FC<{ onSubmit: (formData: FormData) => void; onCancel: (
   const [slider4, setSlider4] = useState<File | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!tenGiaoDien) newErrors.tenGiaoDien = "Vui lòng nhập tên giao diện";
     else if (tenGiaoDien.length <= 5) newErrors.tenGiaoDien = "Tên giao diện phải trên 5 ký tự";
@@ -188,7 +193,12 @@ const CreateForm: React.FC<{ onSubmit: (formData: FormData) => void; onCancel: (
     if (!slider2) newErrors.slider2 = "Vui lòng chọn ảnh slider2";
     if (!slider3) newErrors.slider3 = "Vui lòng chọn ảnh slider3";
     if (!slider4) newErrors.slider4 = "Vui lòng chọn ảnh slider4";
+    return newErrors;
+  };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -196,13 +206,19 @@ const CreateForm: React.FC<{ onSubmit: (formData: FormData) => void; onCancel: (
 
     const formData = new FormData();
     formData.append("TenGiaoDien", tenGiaoDien);
-    if (logo) formData.append("logo", logo);
-    if (avt) formData.append("avt", avt);
-    if (slider1) formData.append("slider1", slider1);
-    if (slider2) formData.append("slider2", slider2);
-    if (slider3) formData.append("slider3", slider3);
-    if (slider4) formData.append("slider4", slider4);
-    formData.append("trangThai", "0");
+    if (logo) formData.append("Logo", logo); // Đảm bảo tên trường khớp với backend
+    if (avt) formData.append("Avt", avt);
+    if (slider1) formData.append("Slider1", slider1);
+    if (slider2) formData.append("Slider2", slider2);
+    if (slider3) formData.append("Slider3", slider3);
+    if (slider4) formData.append("Slider4", slider4);
+    formData.append("TrangThai", "0");
+
+    // Log dữ liệu để kiểm tra
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+
     onSubmit(formData);
   };
 
@@ -261,33 +277,37 @@ const EditForm: React.FC<{
   const [slider4, setSlider4] = useState<File | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!tenGiaoDien) newErrors.tenGiaoDien = "Vui lòng nhập tên giao diện";
     else if (tenGiaoDien.length <= 5) newErrors.tenGiaoDien = "Tên giao diện phải trên 5 ký tự";
-    if (!logo && !giaoDien.logo) newErrors.logo = "Vui lòng chọn ảnh logo";
-    if (!avt && !giaoDien.avt) newErrors.avt = "Vui lòng chọn ảnh avt";
-    if (!slider1 && !giaoDien.slider1) newErrors.slider1 = "Vui lòng chọn ảnh slider1";
-    if (!slider2 && !giaoDien.slider2) newErrors.slider2 = "Vui lòng chọn ảnh slider2";
-    if (!slider3 && !giaoDien.slider3) newErrors.slider3 = "Vui lòng chọn ảnh slider3";
-    if (!slider4 && !giaoDien.slider4) newErrors.slider4 = "Vui lòng chọn ảnh slider4";
+    return newErrors;
+  };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
     const formData = new FormData();
-    formData.append("maGiaoDien", giaoDien.maGiaoDien.toString());
+    formData.append("MaGiaoDien", giaoDien.maGiaoDien.toString());
     formData.append("TenGiaoDien", tenGiaoDien);
-    formData.append("trangThai", giaoDien.trangThai.toString());
-    if (logo) formData.append("logo", logo);
-    if (avt) formData.append("avt", avt);
-    if (slider1) formData.append("slider1", slider1);
-    if (slider2) formData.append("slider2", slider2);
-    if (slider3) formData.append("slider3", slider3);
-    if (slider4) formData.append("slider4", slider4);
+    formData.append("TrangThai", giaoDien.trangThai.toString());
+    if (logo) formData.append("Logo", logo);
+    if (avt) formData.append("Avt", avt);
+    if (slider1) formData.append("Slider1", slider1);
+    if (slider2) formData.append("Slider2", slider2);
+    if (slider3) formData.append("Slider3", slider3);
+    if (slider4) formData.append("Slider4", slider4);
+
+    // Log dữ liệu để kiểm tra
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+
     onSubmit(formData);
   };
 
@@ -401,7 +421,6 @@ const DetailForm: React.FC<{ giaoDien: GiaoDien; onClose: () => void }> = ({ gia
   );
 };
 
-// Hàm loại bỏ dấu tiếng Việt
 const removeDiacritics = (str: string) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
@@ -420,19 +439,22 @@ const Giaodien: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [searchTrangThai, setSearchTrangThai] = useState<string>("");
   const [showDateSearch, setShowDateSearch] = useState<boolean>(false);
-  const [startDate, setStartDate] = useState<string>(""); // Thêm state cho ngày bắt đầu
-  const [endDate, setEndDate] = useState<string>(""); // Thêm state cho ngày kết thúc
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   const fetchGiaoDiens = async () => {
     try {
       const response = await fetch("http://localhost:5261/api/GiaoDien");
-      if (!response.ok) throw new Error("Không thể tải dữ liệu.");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Không thể tải dữ liệu: ${errorText}`);
+      }
       const data: GiaoDien[] = await response.json();
       const sortedData = data.sort((a, b) => new Date(b.ngayTao).getTime() - new Date(a.ngayTao).getTime());
       setGiaoDiens(sortedData);
       setLoading(false);
-    } catch (err) {
-      setError("Lỗi khi tải danh sách giao diện.");
+    } catch (err: any) {
+      setError(err.message || "Lỗi khi tải danh sách giao diện.");
       setLoading(false);
     }
   };
@@ -443,44 +465,57 @@ const Giaodien: React.FC = () => {
 
   const handleCreate = async (formData: FormData) => {
     try {
+      // Log dữ liệu gửi đi để debug
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
       const response = await fetch("http://localhost:5261/api/GiaoDien", {
         method: "POST",
         body: formData,
       });
-      if (!response.ok) throw new Error("Lỗi khi tạo giao diện.");
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi khi tạo giao diện: ${errorText}`);
+      }
+
       setIsModalOpen(false);
       fetchGiaoDiens();
       setNotification({ message: "Tạo giao diện thành công", type: "success" });
       setCurrentPage(1);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi:", error);
-      setError("Lỗi khi tạo giao diện.");
-      setNotification({ message: "Lỗi khi tạo giao diện", type: "error" });
+      setError(error.message || "Lỗi khi tạo giao diện.");
+      setNotification({ message: error.message || "Lỗi khi tạo giao diện.", type: "error" });
     }
   };
 
   const handleUpdate = async (formData: FormData) => {
     if (!selectedGiaoDien) return;
     try {
-      if (!formData.get("logo")) formData.append("logo", selectedGiaoDien.logo);
-      if (!formData.get("slider1")) formData.append("slider1", selectedGiaoDien.slider1);
-      if (!formData.get("slider2")) formData.append("slider2", selectedGiaoDien.slider2);
-      if (!formData.get("slider3")) formData.append("slider3", selectedGiaoDien.slider3);
-      if (!formData.get("slider4")) formData.append("slider4", selectedGiaoDien.slider4);
-      if (!formData.get("avt")) formData.append("avt", selectedGiaoDien.avt);
+      // Log dữ liệu gửi đi để debug
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
 
       const response = await fetch(`http://localhost:5261/api/GiaoDien/${selectedGiaoDien.maGiaoDien}`, {
         method: "PUT",
         body: formData,
       });
-      if (!response.ok) throw new Error("Lỗi khi cập nhật.");
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi khi cập nhật: ${errorText}`);
+      }
+
       setIsModalOpen(false);
       fetchGiaoDiens();
       setNotification({ message: "Cập nhật giao diện thành công", type: "success" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi:", error);
-      setError("Lỗi khi cập nhật giao diện.");
-      setNotification({ message: "Lỗi khi cập nhật giao diện", type: "error" });
+      setError(error.message || "Lỗi khi cập nhật giao diện.");
+      setNotification({ message: error.message || "Lỗi khi cập nhật giao diện.", type: "error" });
     }
   };
 
@@ -490,7 +525,10 @@ const Giaodien: React.FC = () => {
       const response = await fetch(`http://localhost:5261/api/GiaoDien/${selectedGiaoDien.maGiaoDien}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Lỗi khi xóa.");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi khi xóa: ${errorText}`);
+      }
       setIsModalOpen(false);
       fetchGiaoDiens();
       setNotification({ message: "Xóa giao diện thành công", type: "success" });
@@ -499,10 +537,10 @@ const Giaodien: React.FC = () => {
       if (currentPage > totalPages) {
         setCurrentPage(totalPages || 1);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi:", error);
-      setError("Lỗi khi xóa giao diện.");
-      setNotification({ message: "Lỗi khi xóa giao diện", type: "error" });
+      setError(error.message || "Lỗi khi xóa giao diện.");
+      setNotification({ message: error.message || "Lỗi khi xóa giao diện.", type: "error" });
     }
   };
 
@@ -518,10 +556,10 @@ const Giaodien: React.FC = () => {
       fetchGiaoDiens();
       setIsModalOpen(false);
       setNotification({ message: "Cập nhật trạng thái thành công", type: "success" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      setError(`Lỗi khi cập nhật trạng thái giao diện: ${error.message}`);
-      setNotification({ message: "Lỗi khi cập nhật trạng thái", type: "error" });
+      setError(error.message || "Lỗi khi cập nhật trạng thái.");
+      setNotification({ message: error.message || "Lỗi khi cập nhật trạng thái.", type: "error" });
     }
   };
 
@@ -608,7 +646,7 @@ const Giaodien: React.FC = () => {
           message={notification.message}
           type={notification.type}
           onClose={() => setNotification(null)}
-          duration={3000}
+          duration={5000}
         />
       )}
       <div className="flex justify-between items-center">

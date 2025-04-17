@@ -1,333 +1,774 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaChevronDown, FaEye } from "react-icons/fa";
+import { FaCheck, FaTimes, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import Select from "react-select";
 
-// Types
-type Province = { ProvinceID: number; ProvinceName: string };
-type District = { DistrictID: number; DistrictName: string };
-type Ward = { WardCode: string; WardName: string };
-type User = { maNguoiDung: string; hoTen: string };
-type DiaChi = { maDiaChi: number; maNguoiDung: string; hoTen: string; sdt: string; moTa: string; diaChi: string; phuongXa: string; quanHuyen: string; tinh: string; trangThai: number };
-type FormErrors = Partial<Record<keyof DiaChi, string>>;
+interface Province { ProvinceID: number; ProvinceName: string; }
+interface District { DistrictID: number; DistrictName: string; }
+interface Ward { WardCode: string; WardName: string; }
+interface DiaChi {
+  maDiaChi: number;
+  maNguoiDung: string;
+  hoTen: string;
+  sdt: string;
+  moTa: string;
+  diaChi: string;
+  phuongXa: string;
+  quanHuyen: string;
+  tinh: string;
+  trangThai: number;
+}
+interface User {
+  maNguoiDung: string;
+  hoTen: string;
+  ngaySinh: string | null;
+  sdt: string | null;
+  cccd: string | null;
+  email: string;
+}
+interface FormErrors {
+  hoTen?: string;
+  sdt?: string;
+  tinh?: string;
+  quanHuyen?: string;
+  phuongXa?: string;
+  diaChi?: string;
+}
+type Mode = "add" | "edit" | "view";
 
-// Base Modal
-const BaseModal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) =>
-  isOpen ? (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full">
-        <div className="flex justify-between mb-4">
-          <h2 className="text-xl font-bold">{title}</h2>
-          <Button variant="ghost" onClick={onClose}>✕</Button>
-        </div>
-        {children}
-      </div>
-    </div>
-  ) : null;
-
-// Address Form
-const AddressForm = ({ formData, onChange, onSubmit, onCancel, provinces, districts, wards, selectedProvince, setSelectedProvince, selectedDistrict, setSelectedDistrict, selectedWard, setSelectedWard, isLoadingProvinces, isLoadingDistricts, isLoadingWards, formErrors, isViewMode = false }: { formData: Partial<DiaChi>; onChange: (f: keyof DiaChi, v: string) => void; onSubmit: () => void; onCancel: () => void; provinces: Province[]; districts: District[]; wards: Ward[]; selectedProvince: Province | null; setSelectedProvince: (p: Province | null) => void; selectedDistrict: District | null; setSelectedDistrict: (d: District | null) => void; selectedWard: Ward | null; setSelectedWard: (w: Ward | null) => void; isLoadingProvinces: boolean; isLoadingDistricts: boolean; isLoadingWards: boolean; formErrors: FormErrors; isViewMode?: boolean }) => (
-  <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="hoTen">Họ tên</Label>
-          {isViewMode ? <p>{formData.hoTen}</p> : <Input id="hoTen" value={formData.hoTen || ""} onChange={(e) => onChange("hoTen", e.target.value)} className={formErrors.hoTen ? "border-red-500" : ""} />}
-          {formErrors.hoTen && <p className="text-red-500 text-sm">{formErrors.hoTen}</p>}
-        </div>
-        <div>
-          <Label htmlFor="sdt">Số điện thoại</Label>
-          {isViewMode ? <p>{formData.sdt}</p> : <Input id="sdt" value={formData.sdt || ""} onChange={(e) => onChange("sdt", e.target.value)} className={formErrors.sdt ? "border-red-500" : ""} />}
-          {formErrors.sdt && <p className="text-red-500 text-sm">{formErrors.sdt}</p>}
-        </div>
-        <div>
-          <Label htmlFor="moTa">Mô tả</Label>
-          {isViewMode ? <p>{formData.moTa || "Không có"}</p> : <textarea id="moTa" value={formData.moTa || ""} onChange={(e) => onChange("moTa", e.target.value)} className="w-full p-2 border rounded-md" rows={4} />}
-        </div>
-      </div>
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="tinh">Tỉnh/Thành phố</Label>
-          {isViewMode ? <p>{formData.tinh}</p> : <Select options={provinces} getOptionLabel={(p) => p.ProvinceName} getOptionValue={(p) => p.ProvinceID.toString()} value={selectedProvince} onChange={setSelectedProvince} placeholder={isLoadingProvinces ? "Đang tải..." : "Chọn tỉnh"} isDisabled={isLoadingProvinces} isSearchable isClearable className={formErrors.tinh ? "border-red-500" : ""} />}
-          {formErrors.tinh && <p className="text-red-500 text-sm">{formErrors.tinh}</p>}
-        </div>
-        <div>
-          <Label htmlFor="quanHuyen">Quận/Huyện</Label>
-          {isViewMode ? <p>{formData.quanHuyen}</p> : <Select options={districts} getOptionLabel={(d) => d.DistrictName} getOptionValue={(d) => d.DistrictID.toString()} value={selectedDistrict} onChange={setSelectedDistrict} placeholder={isLoadingDistricts ? "Đang tải..." : "Chọn quận/huyện"} isDisabled={!selectedProvince || isLoadingDistricts} isSearchable isClearable className={formErrors.quanHuyen ? "border-red-500" : ""} />}
-          {formErrors.quanHuyen && <p className="text-red-500 text-sm">{formErrors.quanHuyen}</p>}
-        </div>
-        <div>
-          <Label htmlFor="phuongXa">Phường/Xã</Label>
-          {isViewMode ? <p>{formData.phuongXa}</p> : <Select options={wards} getOptionLabel={(w) => w.WardName} getOptionValue={(w) => w.WardCode} value={selectedWard} onChange={setSelectedWard} placeholder={isLoadingWards ? "Đang tải..." : "Chọn phường/xã"} isDisabled={!selectedDistrict || isLoadingWards} isSearchable isClearable className={formErrors.phuongXa ? "border-red-500" : ""} />}
-          {formErrors.phuongXa && <p className="text-red-500 text-sm">{formErrors.phuongXa}</p>}
-        </div>
-        <div>
-          <Label htmlFor="diaChi">Địa chỉ chi tiết</Label>
-          {isViewMode ? <p>{formData.diaChi}</p> : <Input id="diaChi" value={formData.diaChi || ""} onChange={(e) => onChange("diaChi", e.target.value)} className={formErrors.diaChi ? "border-red-500" : ""} />}
-          {formErrors.diaChi && <p className="text-red-500 text-sm">{formErrors.diaChi}</p>}
-        </div>
-      </div>
-    </div>
-    <div className="flex justify-end space-x-2">
-      <Button variant="outline" onClick={onCancel}><FaTimes className="mr-2" /> {isViewMode ? "Đóng" : "Hủy"}</Button>
-      {!isViewMode && <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white"><FaCheck className="mr-2" /> Lưu</Button>}
-    </div>
-  </form>
-);
-
-// Modals
-const AddModal = ({ isOpen, onClose, onSubmit, ...props }: any) => {
-  const [formData, setFormData] = useState<Partial<DiaChi>>({ trangThai: 1 });
-  return <BaseModal isOpen={isOpen} onClose={onClose} title="Thêm địa chỉ"><AddressForm formData={formData} onChange={(f, v) => setFormData(p => ({ ...p, [f]: v }))} onSubmit={() => onSubmit(formData)} onCancel={onClose} {...props} /></BaseModal>;
+const shippingData = {
+  "Hà Nội": { fee: 40000, time: "3 - 5 ngày" },
+  "TP. Hồ Chí Minh": { fee: 20000, time: "2 - 3 ngày" },
+  "Hải Phòng": { fee: 45000, time: "3 - 5 ngày" },
+  "Đà Nẵng": { fee: 30000, time: "2 - 3 ngày" },
+  "Cần Thơ": { fee: 30000, time: "2 - 4 ngày" },
+  "An Giang": { fee: 35000, time: "3 - 4 ngày" },
+  "Bà Rịa - Vũng Tàu": { fee: 25000, time: "2 - 3 ngày" },
+  "Bắc Giang": { fee: 45000, time: "3 - 5 ngày" },
+  "Bắc Kạn": { fee: 50000, time: "4 - 6 ngày" },
+  "Bạc Liêu": { fee: 35000, time: "3 - 4 ngày" },
+  "Bắc Ninh": { fee: 40000, time: "3 - 5 ngày" },
+  "Bến Tre": { fee: 30000, time: "2 - 4 ngày" },
+  "Bình Định": { fee: 25000, time: "2 - 3 ngày" },
+  "Bình Dương": { fee: 20000, time: "2 - 3 ngày" },
+  "Bình Phước": { fee: 20000, time: "2 - 3 ngày" },
+  "Bình Thuận": { fee: 25000, time: "2 - 3 ngày" },
+  "Cà Mau": { fee: 35000, time: "3 - 5 ngày" },
+  "Cao Bằng": { fee: 50000, time: "4 - 6 ngày" },
+  "Đắk Lắk": { fee: 0, time: "Nội tỉnh" },
+  "Đắk Nông": { fee: 15000, time: "1 - 2 ngày" },
+  "Điện Biên": { fee: 50000, time: "4 - 6 ngày" },
+  "Đồng Nai": { fee: 20000, time: "2 - 3 ngày" },
+  "Đồng Tháp": { fee: 30000, time: "3 - 4 ngày" },
+  "Gia Lai": { fee: 15000, time: "1 - 2 ngày" },
+  "Hà Giang": { fee: 50000, time: "4 - 6 ngày" },
+  "Hà Nam": { fee: 45000, time: "3 - 5 ngày" },
+  "Hà Tĩnh": { fee: 35000, time: "3 - 4 ngày" },
+  "Hải Dương": { fee: 45000, time: "3 - 5 ngày" },
+  "Hậu Giang": { fee: 35000, time: "3 - 4 ngày" },
+  "Hòa Bình": { fee: 45000, time: "3 - 5 ngày" },
+  "Hưng Yên": { fee: 40000, time: "3 - 5 ngày" },
+  "Khánh Hòa": { fee: 25000, time: "2 - 3 ngày" },
+  "Kiên Giang": { fee: 35000, time: "3 - 4 ngày" },
+  "Kon Tum": { fee: 15000, time: "1 - 2 ngày" },
+  "Lai Châu": { fee: 50000, time: "4 - 6 ngày" },
+  "Lâm Đồng": { fee: 20000, time: "1 - 2 ngày" },
+  "Lạng Sơn": { fee: 50000, time: "4 - 6 ngày" },
+  "Lào Cai": { fee: 50000, time: "4 - 6 ngày" },
+  "Long An": { fee: 30000, time: "2 - 4 ngày" },
+  "Nam Định": { fee: 45000, time: "3 - 5 ngày" },
+  "Nghệ An": { fee: 35000, time: "3 - 4 ngày" },
+  "Ninh Bình": { fee: 45000, time: "3 - 5 ngày" },
+  "Ninh Thuận": { fee: 25000, time: "2 - 3 ngày" },
+  "Phú Thọ": { fee: 45000, time: "3 - 5 ngày" },
+  "Phú Yên": { fee: 25000, time: "2 - 3 ngày" },
+  "Quảng Bình": { fee: 35000, time: "3 - 4 ngày" },
+  "Quảng Nam": { fee: 25000, time: "2 - 3 ngày" },
+  "Quảng Ngãi": { fee: 25000, time: "2 - 3 ngày" },
+  "Quảng Ninh": { fee: 50000, time: "4 - 6 ngày" },
+  "Quảng Trị": { fee: 30000, time: "3 - 4 ngày" },
+  "Sóc Trăng": { fee: 35000, time: "3 - 4 ngày" },
+  "Sơn La": { fee: 50000, time: "4 - 6 ngày" },
+  "Tây Ninh": { fee: 25000, time: "2 - 3 ngày" },
+  "Thái Bình": { fee: 45000, time: "3 - 5 ngày" },
+  "Thái Nguyên": { fee: 45000, time: "3 - 5 ngày" },
+  "Thanh Hóa": { fee: 40000, time: "3 - 4 ngày" },
+  "Thừa Thiên Huế": { fee: 30000, time: "2 - 3 ngày" },
+  "Tiền Giang": { fee: 30000, time: "2 - 3 ngày" },
+  "Trà Vinh": { fee: 30000, time: "2 - 3 ngày" },
+  "Tuyên Quang": { fee: 50000, time: "4 - 6 ngày" },
+  "Vĩnh Long": { fee: 30000, time: "2 - 3 ngày" },
+  "Vĩnh Phúc": { fee: 45000, time: "3 - 5 ngày" },
+  "Yên Bái": { fee: 50000, time: "4 - 6 ngày" },
 };
 
-const EditModal = ({ isOpen, onClose, onSubmit, diaChi, ...props }: any) => {
+const AddressForm = ({
+  mode,
+  diaChi,
+  onSubmit,
+  onCancel,
+  provinces,
+  districts,
+  wards,
+  selectedProvince,
+  setSelectedProvince,
+  selectedDistrict,
+  setSelectedDistrict,
+  selectedWard,
+  setSelectedWard,
+  isLoadingProvinces,
+  isLoadingDistricts,
+  isLoadingWards,
+  formErrors,
+}) => {
+  const isViewMode = mode === "view";
   const [formData, setFormData] = useState(diaChi);
-  useEffect(() => setFormData(diaChi), [diaChi]);
-  return <BaseModal isOpen={isOpen} onClose={onClose} title="Sửa địa chỉ"><AddressForm formData={formData} onChange={(f, v) => setFormData(p => ({ ...p, [f]: v }))} onSubmit={() => onSubmit(formData)} onCancel={onClose} {...props} /></BaseModal>;
+
+  useEffect(() => {
+    setFormData(diaChi);
+  }, [diaChi]);
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handlePhoneNumberKeyPress = (e) => {
+    const charCode = e.charCode;
+    if (charCode < 48 || charCode > 57) {
+      e.preventDefault();
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const shippingInfo = selectedProvince ? shippingData[selectedProvince.ProvinceName] : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="hoTen" className="font-semibold text-black">Họ tên</Label>
+          <Input
+            id="hoTen"
+            value={formData.hoTen || ""}
+            onChange={(e) => handleChange("hoTen", e.target.value)}
+            disabled={isViewMode}
+            className={`border-gray-200 rounded-md text-black ${formErrors.hoTen ? "border-red-500" : ""}`}
+          />
+          {formErrors.hoTen && <p className="text-red-500 text-sm mt-1">{formErrors.hoTen}</p>}
+        </div>
+        <div>
+          <Label htmlFor="sdt" className="font-semibold text-black">Số điện thoại</Label>
+          <Input
+            id="sdt"
+            type="tel"
+            maxLength={10}
+            value={formData.sdt || ""}
+            onChange={(e) => handleChange("sdt", e.target.value)}
+            onKeyPress={handlePhoneNumberKeyPress}
+            disabled={isViewMode}
+            className={`border-gray-200 rounded-md text-black ${formErrors.sdt ? "border-red-500" : ""}`}
+          />
+          {formErrors.sdt && <p className="text-red-500 text-sm mt-1">{formErrors.sdt}</p>}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="tinh" className="font-semibold text-black">Tỉnh/Thành phố</Label>
+          <Select
+            options={provinces}
+            getOptionLabel={(option) => option.ProvinceName}
+            getOptionValue={(option) => option.ProvinceID.toString()}
+            value={selectedProvince}
+            onChange={(option) => setSelectedProvince(option)}
+            placeholder={isLoadingProvinces ? "Đang tải..." : "Chọn tỉnh/thành phố"}
+            isDisabled={isLoadingProvinces || isViewMode}
+            isSearchable
+            isClearable
+            className={`border-gray-200 rounded-md text-black ${formErrors.tinh ? "border-red-500" : ""}`}
+            styles={{
+              control: (base) => ({ ...base, color: "black" }),
+              singleValue: (base) => ({ ...base, color: "black" }),
+              placeholder: (base) => ({ ...base, color: "black" }),
+            }}
+          />
+          {formErrors.tinh && <p className="text-red-500 text-sm mt-1">{formErrors.tinh}</p>}
+        </div>
+        <div>
+          <Label htmlFor="quanHuyen" className="font-semibold text-black">Quận/Huyện</Label>
+          <Select
+            options={districts}
+            getOptionLabel={(option) => option.DistrictName}
+            getOptionValue={(option) => option.DistrictID.toString()}
+            value={selectedDistrict}
+            onChange={(option) => setSelectedDistrict(option)}
+            placeholder={isLoadingDistricts ? "Đang tải..." : "Chọn quận/huyện"}
+            isDisabled={!selectedProvince || isLoadingDistricts || isViewMode}
+            isSearchable
+            isClearable
+            className={`border-gray-200 rounded-md text-black ${formErrors.quanHuyen ? "border-red-500" : ""}`}
+            styles={{
+              control: (base) => ({ ...base, color: "black" }),
+              singleValue: (base) => ({ ...base, color: "black" }),
+              placeholder: (base) => ({ ...base, color: "black" }),
+            }}
+          />
+          {formErrors.quanHuyen && <p className="text-red-500 text-sm mt-1">{formErrors.quanHuyen}</p>}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="phuongXa" className="font-semibold text-black">Phường/Xã</Label>
+          <Select
+            options={wards}
+            getOptionLabel={(option) => option.WardName}
+            getOptionValue={(option) => option.WardCode}
+            value={selectedWard}
+            onChange={(option) => setSelectedWard(option)}
+            placeholder={isLoadingWards ? "Đang tải..." : "Chọn phường/xã"}
+            isDisabled={!selectedDistrict || isLoadingWards || isViewMode}
+            isSearchable
+            isClearable
+            className={`border-gray-200 rounded-md text-black ${formErrors.phuongXa ? "border-red-500" : ""}`}
+            styles={{
+              control: (base) => ({ ...base, color: "black" }),
+              singleValue: (base) => ({ ...base, color: "black" }),
+              placeholder: (base) => ({ ...base, color: "black" }),
+            }}
+          />
+          {formErrors.phuongXa && <p className="text-red-500 text-sm mt-1">{formErrors.phuongXa}</p>}
+        </div>
+        <div>
+          <Label htmlFor="diaChi" className="font-semibold text-black">Địa chỉ chi tiết</Label>
+          <Input
+            id="diaChi"
+            value={formData.diaChi || ""}
+            onChange={(e) => handleChange("diaChi", e.target.value)}
+            disabled={isViewMode}
+            className={`border-gray-200 rounded-md text-black ${formErrors.diaChi ? "border-red-500" : ""}`}
+          />
+          {formErrors.diaChi && <p className="text-red-500 text-sm mt-1">{formErrors.diaChi}</p>}
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="moTa" className="font-semibold text-black">Mô tả</Label>
+        <textarea
+          id="moTa"
+          value={formData.moTa || ""}
+          onChange={(e) => handleChange("moTa", e.target.value)}
+          disabled={isViewMode}
+          className="w-full p-2 border border-gray-200 rounded-md text-black"
+          rows={2}
+        />
+      </div>
+      {shippingInfo && selectedWard && (
+        <div className="mt-4 p-4 bg-gray-100 rounded-md">
+          <p><strong className="font-semibold">Phí giao hàng:</strong> {shippingInfo.fee.toLocaleString()} VND</p>
+          <p><strong className="font-semibold">Thời gian giao hàng:</strong> {shippingInfo.time}</p>
+        </div>
+      )}
+      <div className="flex justify-end space-x-2 mt-4">
+        <Button type="button" variant="outline" onClick={onCancel} className="flex items-center">
+          <FaTimes className="mr-2" /> {isViewMode ? "Đóng" : "Hủy"}
+        </Button>
+        {!isViewMode && (
+          <Button type="button" onClick={handleSubmit} className="bg-purple-600 hover:bg-purple-700 text-white flex items-center">
+            <FaCheck className="mr-2" /> {mode === "add" ? "Thêm" : "Cập nhật"}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 };
 
-const ViewModal = ({ isOpen, onClose, diaChi, ...props }: any) =>
-  <BaseModal isOpen={isOpen} onClose={onClose} title="Xem địa chỉ"><AddressForm formData={diaChi} onChange={() => {}} onSubmit={() => {}} onCancel={onClose} isViewMode {...props} /></BaseModal>;
-
-const DeleteModal = ({ isOpen, onClose, onConfirm }: any) => (
-  <BaseModal isOpen={isOpen} onClose={onClose} title="Xác nhận xóa">
-    <p className="mb-4">Bạn có chắc muốn xóa?</p>
-    <div className="flex justify-end space-x-2">
-      <Button variant="outline" onClick={onClose}><FaTimes className="mr-2" /> Hủy</Button>
-      <Button variant="destructive" onClick={onConfirm}><FaCheck className="mr-2" /> Xóa</Button>
-    </div>
-  </BaseModal>
-);
-
-const SelectModal = ({ isOpen, onClose, onConfirm }: any) => (
-  <BaseModal isOpen={isOpen} onClose={onClose} title="Xác nhận chọn">
-    <p className="mb-4">Chọn địa chỉ này?</p>
-    <div className="flex justify-end space-x-2">
-      <Button variant="outline" onClick={onClose}><FaTimes className="mr-2" /> Hủy</Button>
-      <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={onConfirm}><FaCheck className="mr-2" /> Chọn</Button>
-    </div>
-  </BaseModal>
-);
-
-// Main Component
 const DiaChi = () => {
-  const [diaChiList, setDiaChiList] = useState<DiaChi[]>([]);
-  const [maNguoiDung, setMaNguoiDung] = useState<string | null>(null);
+  const [diaChiList, setDiaChiList] = useState([]);
+  const [newDiaChi, setNewDiaChi] = useState({ trangThai: 1 });
+  const [editingDiaChi, setEditingDiaChi] = useState(null);
+  const [viewingDiaChi, setViewingDiaChi] = useState(null);
+  const [maNguoiDung, setMaNguoiDung] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showModal, setShowModal] = useState({ add: false, edit: false, view: false, delete: false, select: false });
-  const [currentDiaChi, setCurrentDiaChi] = useState<DiaChi | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [selectId, setSelectId] = useState<number | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [wards, setWards] = useState<Ward[]>([]);
-  const [selected, setSelected] = useState<{ province: Province | null; district: District | null; ward: Ward | null }>({ province: null, district: null, ward: null });
-  const [isLoadingLoc, setIsLoadingLoc] = useState({ provinces: false, districts: false, wards: false });
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSelectModal, setShowSelectModal] = useState(false);
+  const [deleteMaDiaChi, setDeleteMaDiaChi] = useState(null);
+  const [pendingSelectMaDiaChi, setPendingSelectMaDiaChi] = useState(null);
+  const [formMode, setFormMode] = useState("add");
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [selectedWard, setSelectedWard] = useState(null);
+  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isLoadingWards, setIsLoadingWards] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [activeTab, setActiveTab] = useState("add");
 
   const { toast } = useToast();
   const navigate = useNavigate();
+  const addressListRef = useRef(null);
 
-  const getHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem("token") || ""}`, "Content-Type": "application/json" });
-
-  const fetchData = async <T,>(url: string, method = "GET", body?: any): Promise<T | void> => {
-    const res = await fetch(url, {
-      method,
-      headers: getHeaders(),
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`HTTP error ${res.status}: ${errorText || "Unknown error"}`);
-    }
-    // Nếu là DELETE (204 No Content), không cần parse JSON
-    if (res.status === 204) return;
-    return res.json();
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  const fetchProvinces = async () => {
-    setIsLoadingLoc(p => ({ ...p, provinces: true }));
-    try {
-      setProvinces((await fetchData<any[]>("http://localhost:5261/api/GHN/provinces") || []).map(d => ({ ProvinceID: d.provinceID, ProvinceName: d.provinceName })));
-    } catch {
-      toast({ title: "Lỗi", description: "Tải tỉnh/thành phố thất bại", variant: "destructive" });
-    } finally {
-      setIsLoadingLoc(p => ({ ...p, provinces: false }));
-    }
-  };
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      setIsLoadingProvinces(true);
+      try {
+        const response = await fetch("http://localhost:5261/api/GHN/provinces", { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const transformedProvinces = data.map((item) => ({
+          ProvinceID: item.provinceID,
+          ProvinceName: item.provinceName,
+        }));
+        setProvinces(transformedProvinces);
+      } catch (error) {
+        console.error("Error fetching provinces:", error);
+        toast({ title: "Lỗi", description: "Không thể lấy danh sách tỉnh/thành phố", variant: "destructive" });
+      } finally {
+        setIsLoadingProvinces(false);
+      }
+    };
+    fetchProvinces();
+  }, [toast]);
 
-  const fetchDistricts = async (id: number) => {
-    setIsLoadingLoc(p => ({ ...p, districts: true }));
-    try {
-      setDistricts((await fetchData<any[]>(`http://localhost:5261/api/GHN/districts/${id}`) || []).map(d => ({ DistrictID: d.districtID, DistrictName: d.districtName })));
+  useEffect(() => {
+    if (!selectedProvince?.ProvinceID) {
+      setDistricts([]);
       setWards([]);
-      setSelected(s => ({ ...s, district: null, ward: null }));
-    } catch {
-      toast({ title: "Lỗi", description: "Tải quận/huyện thất bại", variant: "destructive" });
-    } finally {
-      setIsLoadingLoc(p => ({ ...p, districts: false }));
+      setSelectedDistrict(null);
+      setSelectedWard(null);
+      return;
     }
-  };
 
-  const fetchWards = async (id: number) => {
-    setIsLoadingLoc(p => ({ ...p, wards: true }));
-    try {
-      setWards((await fetchData<any[]>(`http://localhost:5261/api/GHN/wards/${id}`) || []).map(d => ({ WardCode: d.wardCode, WardName: d.wardName })));
-      setSelected(s => ({ ...s, ward: null }));
-    } catch {
-      toast({ title: "Lỗi", description: "Tải phường/xã thất bại", variant: "destructive" });
-    } finally {
-      setIsLoadingLoc(p => ({ ...p, wards: false }));
+    const fetchDistricts = async () => {
+      setIsLoadingDistricts(true);
+      try {
+        const response = await fetch(`http://localhost:5261/api/GHN/districts/${selectedProvince.ProvinceID}`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const transformedDistricts = data.map((item) => ({
+          DistrictID: item.districtID,
+          DistrictName: item.districtName,
+        }));
+        setDistricts(transformedDistricts);
+        setWards([]);
+        setSelectedDistrict(null);
+        setSelectedWard(null);
+      } catch (error) {
+        console.error("Error fetching districts:", error);
+        toast({ title: "Lỗi", description: "Không thể lấy danh sách quận/huyện", variant: "destructive" });
+      } finally {
+        setIsLoadingDistricts(false);
+      }
+    };
+    fetchDistricts();
+  }, [selectedProvince, toast]);
+
+  useEffect(() => {
+    if (!selectedDistrict?.DistrictID) {
+      setWards([]);
+      setSelectedWard(null);
+      return;
     }
-  };
+
+    const fetchWards = async () => {
+      setIsLoadingWards(true);
+      try {
+        const response = await fetch(`http://localhost:5261/api/GHN/wards/${selectedDistrict.DistrictID}`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const transformedWards = data.map((item) => ({
+          WardCode: item.wardCode,
+          WardName: item.wardName,
+        }));
+        setWards(transformedWards);
+        setSelectedWard(null);
+      } catch (error) {
+        console.error("Error fetching wards:", error);
+        toast({ title: "Lỗi", description: "Không thể lấy danh sách phường/xã", variant: "destructive" });
+      } finally {
+        setIsLoadingWards(false);
+      }
+    };
+    fetchWards();
+  }, [selectedDistrict, toast]);
 
   const fetchDiaChiList = useCallback(async () => {
     if (!maNguoiDung) return;
     setIsLoading(true);
     try {
-      setDiaChiList((await fetchData<DiaChi[]>(`http://localhost:5261/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`) || []).sort((a, b) => b.trangThai - a.trangThai));
-    } catch {
-      toast({ title: "Lỗi", description: "Tải địa chỉ thất bại", variant: "destructive" });
+      const response = await fetch(`http://localhost:5261/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`, { headers: getAuthHeaders() });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      const sortedData = data.sort((a, b) => b.trangThai - a.trangThai);
+      setDiaChiList(sortedData);
+    } catch (error) {
+      console.error("Error fetching address list:", error);
+      toast({ title: "Lỗi", description: "Không thể lấy danh sách địa chỉ", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
-  }, [maNguoiDung]);
+  }, [maNguoiDung, toast]);
 
-  useEffect(() => { fetchProvinces(); }, []);
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) setMaNguoiDung(JSON.parse(user).maNguoiDung);
-    else navigate("/login");
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setMaNguoiDung(parsedUser.maNguoiDung);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        navigate("/login");
+      }
+    } else {
+      navigate("/login");
+    }
   }, [navigate]);
-  useEffect(() => { if (maNguoiDung) fetchDiaChiList(); }, [maNguoiDung, fetchDiaChiList]);
-  useEffect(() => { if (selected.province && (showModal.add || showModal.edit)) fetchDistricts(selected.province.ProvinceID); }, [selected.province, showModal.add, showModal.edit]);
-  useEffect(() => { if (selected.district && (showModal.add || showModal.edit)) fetchWards(selected.district.DistrictID); }, [selected.district, showModal.add, showModal.edit]);
 
-  const validateForm = (data: Partial<DiaChi>): FormErrors => ({
-    ...(data.hoTen && data.hoTen.length >= 5 ? {} : { hoTen: "Tên cần ≥ 5 ký tự" }),
-    ...(data.sdt && /^\d{10}$/.test(data.sdt) ? {} : { sdt: "SĐT phải 10 số" }),
-    ...(data.tinh ? {} : { tinh: "Chọn tỉnh" }),
-    ...(data.quanHuyen ? {} : { quanHuyen: "Chọn quận/huyện" }),
-    ...(data.phuongXa ? {} : { phuongXa: "Chọn phường/xã" }),
-    ...(data.diaChi ? {} : { diaChi: "Nhập địa chỉ" }),
-  });
+  useEffect(() => {
+    if (maNguoiDung) fetchDiaChiList();
+  }, [maNguoiDung, fetchDiaChiList]);
 
-  const handleAdd = async (data: Partial<DiaChi>) => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}") as User;
-    const fullData = { ...data, maNguoiDung: user.maNguoiDung, tinh: selected.province?.ProvinceName || "", quanHuyen: selected.district?.DistrictName || "", phuongXa: selected.ward?.WardName || "", trangThai: 1 };
-    const errors = validateForm(fullData);
-    if (Object.keys(errors).length) return setFormErrors(errors);
-    if (diaChiList.length >= 5) return toast({ title: "Lỗi", description: "Tối đa 5 địa chỉ", variant: "destructive" });
+  const validateForm = (formData: Partial<DiaChi>): FormErrors => {
+    const errors: FormErrors = {};
+    if (!formData.hoTen || formData.hoTen.trim().length < 5)
+      errors.hoTen = "Họ tên phải có ít nhất 5 ký tự";
+    if (!formData.sdt)
+      errors.sdt = "Số điện thoại là bắt buộc";
+    else if (!/^\d{10}$/.test(formData.sdt))
+      errors.sdt = "Số điện thoại phải có đúng 10 chữ số";
+    if (!selectedProvince)
+      errors.tinh = "Tỉnh/Thành phố là bắt buộc";
+    if (!selectedDistrict)
+      errors.quanHuyen = "Quận/Huyện là bắt buộc";
+    if (!selectedWard)
+      errors.phuongXa = "Phường/Xã là bắt buộc";
+    if (!formData.diaChi || formData.diaChi.trim() === "")
+      errors.diaChi = "Địa chỉ chi tiết là bắt buộc";
+    return errors;
+  };
+
+  const handleFormSubmit = async (formData) => {
+    const fullFormData = {
+      ...formData,
+      tinh: selectedProvince?.ProvinceName,
+      quanHuyen: selectedDistrict?.DistrictName,
+      phuongXa: selectedWard?.WardName,
+    };
+    const errors = validateForm(fullFormData);
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ và đúng thông tin", variant: "destructive" });
+      return;
+    }
+
     try {
-      await fetchData("http://localhost:5261/api/DanhSachDiaChi", "POST", fullData);
-      fetchDiaChiList();
-      setShowModal(p => ({ ...p, add: false }));
+      if (formMode === "add") {
+        if (diaChiList.length >= 5) {
+          toast({ title: "Lỗi", description: "Bạn chỉ có thể có tối đa 5 địa chỉ", variant: "destructive" });
+          setActiveTab("list");
+          addressListRef.current?.scrollIntoView({ behavior: "smooth" });
+          return;
+        }
+        const response = await fetch("http://localhost:5261/api/DanhSachDiaChi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify({ ...fullFormData, maNguoiDung, trangThai: 1 }),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        toast({ title: "Thành công", description: "Đã thêm địa chỉ mới" });
+        await fetchDiaChiList();
+        setActiveTab("list");
+        addressListRef.current?.scrollIntoView({ behavior: "smooth" });
+      } else if (formMode === "edit" && editingDiaChi) {
+        const response = await fetch(`http://localhost:5261/api/DanhSachDiaChi/${editingDiaChi.maDiaChi}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify({
+            ...fullFormData,
+            maDiaChi: editingDiaChi.maDiaChi,
+            maNguoiDung,
+            trangThai: editingDiaChi.trangThai,
+          }),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        toast({ title: "Thành công", description: "Đã cập nhật địa chỉ" });
+        await fetchDiaChiList();
+      }
+      setShowFormModal(false);
       setFormErrors({});
-      setSelected({ province: null, district: null, ward: null });
-      toast({ title: "Thành công", description: "Đã thêm địa chỉ" });
     } catch (error) {
-      toast({ title: "Lỗi", description: `Thêm thất bại: ${error.message}`, variant: "destructive" });
+      console.error(`Error ${formMode === "add" ? "adding" : "updating"} address:`, error);
+      toast({
+        title: "Lỗi",
+        description: `Không thể ${formMode === "add" ? "thêm" : "cập nhật"} địa chỉ`,
+        variant: "destructive",
+      });
     }
   };
 
-  const handleEdit = async (data: Partial<DiaChi>) => {
-    if (!currentDiaChi) return;
-    const fullData = { ...data, maDiaChi: currentDiaChi.maDiaChi, maNguoiDung: currentDiaChi.maNguoiDung, tinh: selected.province?.ProvinceName || currentDiaChi.tinh, quanHuyen: selected.district?.DistrictName || currentDiaChi.quanHuyen, phuongXa: selected.ward?.WardName || currentDiaChi.phuongXa, trangThai: currentDiaChi.trangThai };
-    const errors = validateForm(fullData);
-    if (Object.keys(errors).length) return setFormErrors(errors);
-    try {
-      await fetchData(`http://localhost:5261/api/DanhSachDiaChi/${currentDiaChi.maDiaChi}`, "PUT", fullData);
-      fetchDiaChiList();
-      setShowModal(p => ({ ...p, edit: false }));
-      setFormErrors({});
-      setSelected({ province: null, district: null, ward: null });
-      toast({ title: "Thành công", description: "Đã sửa địa chỉ" });
-    } catch (error) {
-      toast({ title: "Lỗi", description: `Sửa thất bại: ${error.message}`, variant: "destructive" });
-    }
+  const handleDelete = (maDiaChi) => {
+    setDeleteMaDiaChi(maDiaChi);
+    setShowDeleteModal(true);
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
+  const confirmDelete = async () => {
+    if (deleteMaDiaChi === null) return;
     try {
-      await fetchData(`http://localhost:5261/api/DanhSachDiaChi/${deleteId}`, "DELETE");
-      setDiaChiList(diaChiList.filter(d => d.maDiaChi !== deleteId));
-      setShowModal(p => ({ ...p, delete: false }));
-      setDeleteId(null);
+      const response = await fetch(`http://localhost:5261/api/DanhSachDiaChi/${deleteMaDiaChi}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      setDiaChiList(diaChiList.filter((dc) => dc.maDiaChi !== deleteMaDiaChi));
       toast({ title: "Thành công", description: "Đã xóa địa chỉ" });
-      fetchDiaChiList(); // Đảm bảo đồng bộ dữ liệu từ server
     } catch (error) {
-      toast({ title: "Lỗi", description: `Xóa thất bại: ${error.message}`, variant: "destructive" });
+      console.error("Error deleting address:", error);
+      toast({ title: "Lỗi", description: "Không thể xóa địa chỉ", variant: "destructive" });
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteMaDiaChi(null);
     }
   };
 
-  const handleSelect = async () => {
-    if (!selectId) return;
+  const handleSelectDiaChi = (maDiaChi) => {
+    setPendingSelectMaDiaChi(maDiaChi);
+    setShowSelectModal(true);
+  };
+
+  const confirmSelectDiaChi = async () => {
+    if (pendingSelectMaDiaChi === null) return;
     try {
-      await Promise.all(diaChiList.map(d => fetchData(`http://localhost:5261/api/DanhSachDiaChi/${d.maDiaChi}`, "PUT", { ...d, trangThai: d.maDiaChi === selectId ? 1 : 0 })));
-      fetchDiaChiList();
-      setShowModal(p => ({ ...p, select: false }));
-      setSelectId(null);
+      await Promise.all(
+        diaChiList.map(async (dc) => {
+          const newStatus = dc.maDiaChi === pendingSelectMaDiaChi ? 1 : 0;
+          const response = await fetch(`http://localhost:5261/api/DanhSachDiaChi/${dc.maDiaChi}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ ...dc, trangThai: newStatus }),
+          });
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        })
+      );
       toast({ title: "Thành công", description: "Đã chọn địa chỉ" });
+      await fetchDiaChiList();
     } catch (error) {
-      toast({ title: "Lỗi", description: `Chọn thất bại: ${error.message}`, variant: "destructive" });
+      console.error("Error selecting address:", error);
+      toast({ title: "Lỗi", description: "Không thể chọn địa chỉ", variant: "destructive" });
+    } finally {
+      setShowSelectModal(false);
+      setPendingSelectMaDiaChi(null);
     }
   };
 
-  const renderAddressCard = (dc: DiaChi) => (
-    <div className={`border p-4 rounded-lg bg-white shadow-sm ${dc.trangThai === 1 ? "border-purple-600" : "border-gray-200"} flex justify-between`}>
-      <div>
-        <p><strong>Họ tên:</strong> {dc.hoTen}</p>
-        <p><strong>SĐT:</strong> {dc.sdt}</p>
-        <p><strong>Mô tả:</strong> {dc.moTa || "Không có"}</p>
-        <p><strong>Địa chỉ:</strong> {dc.diaChi}, {dc.phuongXa}, {dc.quanHuyen}, {dc.tinh}</p>
-        <p><strong>Trạng thái:</strong> {dc.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}</p>
-      </div>
-      <div className="flex flex-col items-center space-y-2">
-        <input type="checkbox" checked={dc.trangThai === 1} onChange={() => { setSelectId(dc.maDiaChi); setShowModal(p => ({ ...p, select: true })); }} className="h-5 w-5" />
-        <Button onClick={() => { setCurrentDiaChi(dc); setShowModal(p => ({ ...p, view: true })); }} className="bg-blue-600 hover:bg-blue-700 text-white w-6 h-6 p-0"><FaEye size={12} /></Button>
-        <Button onClick={() => { setCurrentDiaChi(dc); setSelected({ province: provinces.find(p => p.ProvinceName === dc.tinh) || null, district: districts.find(d => d.DistrictName === dc.quanHuyen) || null, ward: wards.find(w => w.WardName === dc.phuongXa) || null }); setShowModal(p => ({ ...p, edit: true })); }} className="bg-purple-600 hover:bg-purple-700 text-white w-6 h-6 p-0"><FaEdit size={12} /></Button>
-        <Button onClick={() => { setDeleteId(dc.maDiaChi); setShowModal(p => ({ ...p, delete: true })); }} variant="destructive" className="w-6 h-6 p-0"><FaTrash size={12} /></Button>
-      </div>
-    </div>
-  );
+  const openAddForm = () => {
+    setFormMode("add");
+    setNewDiaChi({ trangThai: 1 });
+    setEditingDiaChi(null);
+    setViewingDiaChi(null);
+    setSelectedProvince(null);
+    setSelectedDistrict(null);
+    setSelectedWard(null);
+    setDistricts([]);
+    setWards([]);
+    setFormErrors({});
+  };
 
-  const activeAddress = diaChiList.find(d => d.trangThai === 1);
-  const inactiveAddresses = diaChiList.filter(d => d.trangThai === 0);
+  const openEditForm = (diaChi) => {
+    setFormMode("edit");
+    setEditingDiaChi(diaChi);
+    setViewingDiaChi(null);
+    setSelectedProvince(provinces.find((p) => p.ProvinceName === diaChi.tinh) || null);
+    setFormErrors({});
+    setShowFormModal(true);
+  };
+
+  const openViewForm = (diaChi) => {
+    setFormMode("view");
+    setViewingDiaChi(diaChi);
+    setEditingDiaChi(null);
+    setSelectedProvince(provinces.find((p) => p.ProvinceName === diaChi.tinh) || null);
+    setFormErrors({});
+    setShowFormModal(true);
+  };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>{/* Placeholder */}</div>
-        <div>
-          <div className="flex justify-between mb-4">
-            <h1 className="text-2xl font-bold flex items-center space-x-2 border rounded-md p-2 bg-white hover:bg-gray-100 cursor-pointer" onClick={() => setShowInactive(!showInactive)}>
-              <span>Danh sách địa chỉ</span>
-              <FaChevronDown className={`transition-transform duration-300 ${showInactive ? "rotate-180" : ""}`} />
-            </h1>
-            <Button onClick={() => setShowModal(p => ({ ...p, add: true }))} className="bg-purple-600 hover:bg-purple-700 text-white"><FaPlus className="mr-2" /> Thêm</Button>
-          </div>
-          {isLoading ? <p>Đang tải...</p> : diaChiList.length === 0 ? <p>Chưa có địa chỉ</p> : (
-            <div className="space-y-4">
-              {activeAddress && renderAddressCard(activeAddress)}
-              {showInactive && inactiveAddresses.map(dc => <div key={dc.maDiaChi}>{renderAddressCard(dc)}</div>)}
-            </div>
-          )}
+    <div className="container mx-auto p-4 flex justify-center items-center min-h-screen">
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-4xl">
+        <div className="flex justify-center mb-8">
+          <Button
+            onClick={() => setActiveTab("add")}
+            className={`px-4 py-2 rounded-l-lg ${activeTab === "add" ? "bg-purple-600 text-white" : "bg-gray-200 text-black"}`}
+          >
+            Thêm địa chỉ mới
+          </Button>
+          <Button
+            onClick={() => setActiveTab("list")}
+            className={`px-4 py-2 rounded-r-lg ${activeTab === "list" ? "bg-purple-600 text-white" : "bg-gray-200 text-black"}`}
+          >
+            Danh sách địa chỉ
+          </Button>
         </div>
+
+        {activeTab === "add" && (
+          <AddressForm
+            mode="add"
+            diaChi={newDiaChi}
+            onSubmit={handleFormSubmit}
+            onCancel={() => openAddForm()}
+            provinces={provinces}
+            districts={districts}
+            wards={wards}
+            selectedProvince={selectedProvince}
+            setSelectedProvince={setSelectedProvince}
+            selectedDistrict={selectedDistrict}
+            setSelectedDistrict={setSelectedDistrict}
+            selectedWard={selectedWard}
+            setSelectedWard={setSelectedWard}
+            isLoadingProvinces={isLoadingProvinces}
+            isLoadingDistricts={isLoadingDistricts}
+            isLoadingWards={isLoadingWards}
+            formErrors={formErrors}
+          />
+        )}
+
+        {activeTab === "list" && (
+          <div className="space-y-4" style={{ maxHeight: '500px', overflowY: 'auto' }} ref={addressListRef}>
+            {isLoading ? (
+              <p>Đang tải danh sách địa chỉ...</p>
+            ) : diaChiList.length === 0 ? (
+              <p>Không có địa chỉ nào để hiển thị.</p>
+            ) : (
+              diaChiList.map((dc) => (
+                <div key={dc.maDiaChi} className={`border p-4 rounded-lg bg-white shadow-sm ${dc.trangThai === 1 ? "border-purple-600" : "border-gray-200"} flex justify-between items-start`}>
+                  <div>
+                    <p><strong className="font-semibold">Họ tên:</strong> {dc.hoTen}</p>
+                    <p><strong className="font-semibold">Số điện thoại:</strong> {dc.sdt}</p>
+                    <p><strong className="font-semibold">Mô tả:</strong> {dc.moTa || "Không có mô tả"}</p>
+                    <p><strong className="font-semibold">Địa chỉ:</strong> {dc.diaChi}, {dc.phuongXa}, {dc.quanHuyen}, {dc.tinh}</p>
+                    <p><strong className="font-semibold">Trạng thái:</strong> {dc.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}</p>
+                    {shippingData[dc.tinh] ? (
+                      <div className="mt-2 text-sm">
+                        <p><strong className="font-semibold">Phí giao hàng:</strong> {shippingData[dc.tinh].fee.toLocaleString()} VND</p>
+                        <p><strong className="font-semibold">Thời gian giao hàng:</strong> {shippingData[dc.tinh].time}</p>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm">Không có thông tin phí và thời gian giao hàng</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-center space-y-2">
+                    <input
+                      type="checkbox"
+                      checked={dc.trangThai === 1}
+                      onChange={() => handleSelectDiaChi(dc.maDiaChi)}
+                      className="h-5 w-5"
+                    />
+                    <Button
+                      onClick={() => openViewForm(dc)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white w-6 h-6 p-0"
+                    >
+                      <FaEye size={12} />
+                    </Button>
+                    <Button
+                      onClick={() => openEditForm(dc)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white w-6 h-6 p-0"
+                    >
+                      <FaEdit size={12} />
+                    </Button>
+                    <Button
+                      onClick={() => handleDelete(dc.maDiaChi)}
+                      variant="destructive"
+                      className="w-6 h-6 p-0"
+                    >
+                      <FaTrash size={12} />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
-      <Separator className="my-4" />
-      <AddModal isOpen={showModal.add} onClose={() => setShowModal(p => ({ ...p, add: false }))} onSubmit={handleAdd} provinces={provinces} districts={districts} wards={wards} selectedProvince={selected.province} setSelectedProvince={(p) => setSelected(s => ({ ...s, province: p }))} selectedDistrict={selected.district} setSelectedDistrict={(d) => setSelected(s => ({ ...s, district: d }))} selectedWard={selected.ward} setSelectedWard={(w) => setSelected(s => ({ ...s, ward: w }))} isLoadingProvinces={isLoadingLoc.provinces} isLoadingDistricts={isLoadingLoc.districts} isLoadingWards={isLoadingLoc.wards} formErrors={formErrors} />
-      {currentDiaChi && <EditModal isOpen={showModal.edit} onClose={() => setShowModal(p => ({ ...p, edit: false }))} onSubmit={handleEdit} diaChi={currentDiaChi} provinces={provinces} districts={districts} wards={wards} selectedProvince={selected.province} setSelectedProvince={(p) => setSelected(s => ({ ...s, province: p }))} selectedDistrict={selected.district} setSelectedDistrict={(d) => setSelected(s => ({ ...s, district: d }))} selectedWard={selected.ward} setSelectedWard={(w) => setSelected(s => ({ ...s, ward: w }))} isLoadingProvinces={isLoadingLoc.provinces} isLoadingDistricts={isLoadingLoc.districts} isLoadingWards={isLoadingLoc.wards} formErrors={formErrors} />}
-      {currentDiaChi && <ViewModal isOpen={showModal.view} onClose={() => setShowModal(p => ({ ...p, view: false }))} diaChi={currentDiaChi} provinces={provinces} districts={districts} wards={wards} selectedProvince={selected.province} setSelectedProvince={(p) => setSelected(s => ({ ...s, province: p }))} selectedDistrict={selected.district} setSelectedDistrict={(d) => setSelected(s => ({ ...s, district: d }))} selectedWard={selected.ward} setSelectedWard={(w) => setSelected(s => ({ ...s, ward: w }))} isLoadingProvinces={isLoadingLoc.provinces} isLoadingDistricts={isLoadingLoc.districts} isLoadingWards={isLoadingLoc.wards} formErrors={formErrors} />}
-      <DeleteModal isOpen={showModal.delete} onClose={() => setShowModal(p => ({ ...p, delete: false }))} onConfirm={handleDelete} />
-      <SelectModal isOpen={showModal.select} onClose={() => setShowModal(p => ({ ...p, select: false }))} onConfirm={handleSelect} />
+
+      {showFormModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">
+                {formMode === "edit" ? "Chỉnh sửa địa chỉ" : "Xem chi tiết địa chỉ"}
+              </h2>
+              <Button variant="ghost" onClick={() => setShowFormModal(false)}>✕</Button>
+            </div>
+            <AddressForm
+              mode={formMode}
+              diaChi={formMode === "edit" ? editingDiaChi : viewingDiaChi}
+              onSubmit={handleFormSubmit}
+              onCancel={() => setShowFormModal(false)}
+              provinces={provinces}
+              districts={districts}
+              wards={wards}
+              selectedProvince={selectedProvince}
+              setSelectedProvince={setSelectedProvince}
+              selectedDistrict={selectedDistrict}
+              setSelectedDistrict={setSelectedDistrict}
+              selectedWard={selectedWard}
+              setSelectedWard={setSelectedWard}
+              isLoadingProvinces={isLoadingProvinces}
+              isLoadingDistricts={isLoadingDistricts}
+              isLoadingWards={isLoadingWards}
+              formErrors={formErrors}
+            />
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Xác nhận xóa</h2>
+            <p className="mb-4">Bạn có chắc chắn muốn xóa địa chỉ này?</p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowDeleteModal(false)} className="flex items-center">
+                <FaTimes className="mr-2" /> Hủy
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete} className="flex items-center">
+                <FaCheck className="mr-2" /> Xác nhận
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSelectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Xác nhận chọn địa chỉ</h2>
+            <p className="mb-4">Bạn có muốn đổi qua địa chỉ này không?</p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowSelectModal(false)} className="flex items-center">
+                <FaTimes className="mr-2" /> Hủy
+              </Button>
+              <Button onClick={confirmSelectDiaChi} className="bg-purple-600 hover:bg-purple-700 text-white flex items-center">
+                <FaCheck className="mr-2" /> Xác nhận
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
