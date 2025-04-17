@@ -6,7 +6,7 @@ import { Mic, MicOff, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-re
 import { useToast } from "@/components/ui/use-toast";
 import CryptoJS from 'crypto-js';
 import { toByteArray } from 'base64-js';
-import { cn } from "@/lib/utils"; // Giả sử bạn có utility này
+import { cn } from "@/lib/utils";
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -136,7 +136,7 @@ const SupportChat: React.FC = () => {
     }
 
     try {
-      const response = await axios.get(`http://localhost:5261/api/Gemini/TraLoi?question=${encodeURIComponent(question)}`);
+      const response = await axios.get(`http://localhost:5261/api/Gemini/SmartAI?input=${encodeURIComponent(question)}`);
       const data = response.data;
 
       if (data.responseCode === 201 && data.result) {
@@ -201,6 +201,35 @@ const SupportChat: React.FC = () => {
     return btoa(binaryString);
   };
 
+  const cleanTextForTTS = (htmlText: string): string => {
+    // Remove HTML tags, CSS, and convert <br> to newlines
+    const div = document.createElement('div');
+    div.innerHTML = htmlText;
+    
+    // Remove style tags and their content
+    const styles = div.getElementsByTagName('style');
+    while(styles.length > 0) {
+      styles[0].parentNode?.removeChild(styles[0]);
+    }
+    
+    // Get text content and normalize whitespace
+    let cleanText = div.textContent || div.innerText || '';
+    
+    // Remove "Xem chi tiết sản phẩm" phrase
+    cleanText = cleanText.replace(/Xem chi tiết sản phẩm/g, '');
+    
+    // Remove color codes (e.g., #000000, #0C06F5) while keeping color names
+    cleanText = cleanText.replace(/\s*\(#[0-9A-Fa-f]{6}\)/g, '');
+    
+    // Replace multiple newlines/spaces with single space
+    cleanText = cleanText
+      .replace(/\n\s*\n/g, '\n')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return cleanText;
+  };
+
   const speakText = (text: string) => {
     if (!text || !text.trim()) {
       toast({
@@ -210,6 +239,9 @@ const SupportChat: React.FC = () => {
       });
       return;
     }
+
+    // Clean the text before sending to TTS
+    const cleanText = cleanTextForTTS(text);
 
     const wsUrl = assembleAuthUrl('wss://tts-api-sg.xf-yun.com/v2/tts', API_KEY, API_SECRET);
     websocketRef.current = new WebSocket(wsUrl);
@@ -227,7 +259,7 @@ const SupportChat: React.FC = () => {
         },
         data: {
           status: 2,
-          text: encodeTextToBase64(text),
+          text: encodeTextToBase64(cleanText),
         },
       };
       websocketRef.current?.send(JSON.stringify(requestData));
@@ -276,7 +308,7 @@ const SupportChat: React.FC = () => {
 
   return (
     <>
-      {/* Nút mũi tên */}
+      {/* Arrow button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -292,7 +324,7 @@ const SupportChat: React.FC = () => {
         )}
       </button>
 
-      {/* Hộp thoại chat */}
+      {/* Chat dialog */}
       {isOpen && (
         <div
           className={cn(
@@ -306,7 +338,7 @@ const SupportChat: React.FC = () => {
             <h3 className="font-semibold">UltraStore</h3>
           </div>
 
-          {/* Nội dung chat */}
+          {/* Chat content */}
           <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-white dark:bg-gray-800">
             {history.length === 0 ? (
               <div className="text-center text-muted-foreground p-4">
@@ -315,16 +347,19 @@ const SupportChat: React.FC = () => {
             ) : (
               history.map((msg, index) => (
                 <div key={index} className="space-y-2">
-                  {/* Tin nhắn người dùng (bên phải) */}
+                  {/* User message (right) */}
                   <div className="flex justify-end">
                     <div className="bg-[#E8A8FF] text-black p-2 rounded-lg max-w-[70%]">
                       <p className="text-sm">{msg.question}</p>
                     </div>
                   </div>
-                  {/* Tin nhắn AI (bên trái) */}
+                  {/* AI message (left) */}
                   <div className="flex justify-start items-center gap-2">
                     <div className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-[70%]">
-                      <p className="text-sm">{msg.result}</p>
+                      <div 
+                        className="text-sm prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: msg.result }}
+                      />
                     </div>
                     <Button
                       variant="ghost"
