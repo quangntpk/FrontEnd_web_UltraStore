@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -30,16 +30,19 @@ const ProductListing = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("featured");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]); // Thêm state cho thương hiệu
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+
+  const location = useLocation();
 
   const formatter = new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
   });
 
+  // Lấy danh sách sản phẩm từ API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -77,6 +80,14 @@ const ProductListing = () => {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const categoryParam = params.get("category");
+    if (categoryParam && !selectedCategories.includes(categoryParam)) {
+      setSelectedCategories([categoryParam]);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     let result = [...originalProducts];
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -89,7 +100,7 @@ const ProductListing = () => {
     if (selectedCategories.length > 0) {
       result = result.filter((product) => selectedCategories.includes(product.category));
     }
-    if (selectedBrands.length > 0) { // Thêm lọc theo thương hiệu
+    if (selectedBrands.length > 0) {
       result = result.filter((product) => selectedBrands.includes(product.thuongHieu));
     }
     if (priceRange) {
@@ -108,7 +119,7 @@ const ProductListing = () => {
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case "name-desc":
-        result.sort((a, b) => b.name.localeCompare(a.name));
+        result.sort((a, b) => b.name.localeCompare(b.name));
         break;
       default:
         break;
@@ -122,7 +133,7 @@ const ProductListing = () => {
     );
   };
 
-  const handleBrandChange = (brand: string) => { // Thêm handler cho thương hiệu
+  const handleBrandChange = (brand: string) => {
     setSelectedBrands((prev) =>
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
     );
@@ -137,13 +148,13 @@ const ProductListing = () => {
     setSearchQuery("");
     setSortOrder("featured");
     setSelectedCategories([]);
-    setSelectedBrands([]); // Reset thương hiệu
+    setSelectedBrands([]);
     setPriceRange(null);
     toast.success("Đã xóa tất cả bộ lọc");
   };
 
   const categories = [...new Set(originalProducts.map((product) => product.category))];
-  const brands = [...new Set(originalProducts.map((product) => product.thuongHieu))]; // Tạo danh sách thương hiệu
+  const brands = [...new Set(originalProducts.map((product) => product.thuongHieu))];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -181,7 +192,7 @@ const ProductListing = () => {
 
             {showFilters && (
               <div className="bg-white p-6 rounded-xl shadow-sm animate-fade-in">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6"> {/* Thay đổi thành 4 cột */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div>
                     <Label className="text-lg font-medium mb-3 block">Danh Mục</Label>
                     <div className="space-y-2">
@@ -289,11 +300,8 @@ const ProductListing = () => {
                 </div>
               ) : filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <Link to={`/product/${product.id}`}>
-                    <div
-                      key={product.id}
-                      className="rounded-2xl overflow-hidden border border-border colorful-card h-full flex flex-col"
-                    >
+                  <Link to={`/product/${product.id}`} key={product.id}>
+                    <div className="rounded-2xl overflow-hidden border border-border colorful-card h-full flex flex-col">
                       <div
                         className={`aspect-video overflow-hidden bg-gradient-to-r ${product.colorClass}`}
                       >
