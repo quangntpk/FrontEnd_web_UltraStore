@@ -26,6 +26,7 @@ import ComboListing from "./pages/ComboListing";
 import DiaChi from "./pages/DiaChi";
 import Comment from "./pages/Comment"; 
 import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFail from "./pages/PaymentFail";
 
 // Scroll restoration component
 const ScrollToTop = () => {
@@ -137,6 +138,7 @@ const App = () => (
           <Route path="/DiaChi" element={<DiaChi />} />
           <Route path="/Comment" element={<Comment />} />
           <Route path="/PaymentSuccess" element={<PaymentSuccess />} />
+          <Route path="/PaymentFail" element={<PaymentFail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/combo/:id" element={<ComboDetail />} />
           <Route path="*" element={<NotFound />} />

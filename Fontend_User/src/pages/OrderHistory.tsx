@@ -35,6 +35,7 @@ interface Order {
   date: string;
   status: OrderStatus;
   total: number;
+  finalAmount: number;
   items: Array<{
     id: number;
     name: string;
@@ -43,8 +44,8 @@ interface Order {
     image: string;
   }>;
   tenNguoiNhan: string;
-  hinhThucThanhToan: string; 
-  lyDoHuy?: string; 
+  hinhThucThanhToan: string;
+  lyDoHuy?: string;
   sdt: string;
 }
 
@@ -68,7 +69,7 @@ const OrderItem = ({ order, onCancel }: OrderItemProps) => {
           </span>
           <span className="text-sm text-muted-foreground">
             Ngày đặt: {order.date ? new Date(order.date).toLocaleDateString('vi-VN') : "N/A"}
-          </span>   
+          </span>
           <span className="text-sm text-muted-foreground">
             SĐT: {order.sdt || "N/A"}
           </span>
@@ -82,7 +83,7 @@ const OrderItem = ({ order, onCancel }: OrderItemProps) => {
         </div>
         <div className="text-right">
           <div className="font-semibold">
-            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total || 0)}
+            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.finalAmount || 0)}
           </div>
           <span className="text-sm text-muted-foreground">
             {order.items?.length || 0} sản phẩm
@@ -125,9 +126,10 @@ const OrderItem = ({ order, onCancel }: OrderItemProps) => {
               <div key={item.id} className="flex items-center gap-4">
                 <div className="h-16 w-16 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
                   <img
-                    src={item.image || "https://via.placeholder.com/150"}
+                    src={item.image}
                     alt={item.name || "Sản phẩm"}
                     className="h-full w-full object-cover"
+                    onError={() => console.log(`Không tải được hình ảnh cho ${item.name}: ${item.image}`)} // In lỗi nếu không tải được
                   />
                 </div>
                 <div className="flex-1">
@@ -144,9 +146,15 @@ const OrderItem = ({ order, onCancel }: OrderItemProps) => {
           </div>
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between">
+              <span>Tổng trước giảm giá:</span>
+              <span className="font-medium">
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total || 0)}
+              </span>
+            </div>
+            <div className="flex justify-between mt-2">
               <span>Tổng thanh toán:</span>
               <span className="font-bold text-lg">
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total || 0)}
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.finalAmount || 0)}
               </span>
             </div>
           </div>
@@ -206,6 +214,8 @@ const OrderHistory = () => {
         return;
       }
 
+      console.log("Dữ liệu đơn hàng thô:", rawOrders);
+
       const mappedOrders = rawOrders.map((rawOrder: any) => {
         let formattedDate = "";
         if (rawOrder.ngayDat && typeof rawOrder.ngayDat === "string") {
@@ -218,13 +228,22 @@ const OrderHistory = () => {
           date: formattedDate,
           status: mapStatus(rawOrder.trangThaiDonHang),
           total: rawOrder.tongTien,
-          items: rawOrder.sanPhams.map((item: any) => ({
-            id: item.maChiTietDhPues,
-            name: item.tenSanPham,
-            quantity: item.soLuong,
-            price: item.gia,
-            image: item.hinhAnh || "https://via.placeholder.com/150",
-          })),
+          finalAmount: rawOrder.finalAmount,
+          items: rawOrder.sanPhams.map((item: any) => {
+            const imageUrl = item.hinhAnh
+              ? item.hinhAnh.startsWith("http")
+                ? item.hinhAnh
+                : `http://localhost:5261${item.hinhAnh}`
+              : "https://via.placeholder.com/150";
+            console.log(`Hình ảnh sản phẩm ${item.tenSanPham}:`, imageUrl); // In URL hình ảnh
+            return {
+              id: item.maChiTietDh,
+              name: item.tenSanPham,
+              quantity: item.soLuong,
+              price: item.gia,
+              image: imageUrl,
+            };
+          }),
           tenNguoiNhan: rawOrder.tenNguoiNhan,
           hinhThucThanhToan: rawOrder.hinhThucThanhToan,
           sdt: rawOrder.thongTinNguoiDung.sdt,
@@ -270,6 +289,7 @@ const OrderHistory = () => {
         date: rawOrder.date,
         status: rawOrder.status,
         total: rawOrder.total,
+        finalAmount: rawOrder.finalAmount,
         items: rawOrder.items.map((item: any) => ({
           id: item.id,
           name: item.name,

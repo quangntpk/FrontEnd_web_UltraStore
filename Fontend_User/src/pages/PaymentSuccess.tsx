@@ -19,13 +19,12 @@ const PaymentSuccess = () => {
         duration: 5000,
         action: {
           label: "Xem chi tiết",
-          onClick: () => navigate("/Index", { state: { orderId } }),
+          onClick: () => navigate("/order-history", { state: { orderId } }),
         },
       });
       navigate("/", { state: { orderId } });
-    } else {
-      toast.error(message || "Thanh toán VnPay thất bại");
-      navigate("/cart");
+    } else {    
+      navigate("/order-history");
     }
   }, [location, navigate]);
 
