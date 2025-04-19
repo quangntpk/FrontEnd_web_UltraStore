@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   BarChart,              
@@ -32,7 +32,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
-// Định nghĩa interface NavItemProps
 interface NavItemProps {
   to: string;
   icon: React.ElementType;
@@ -40,7 +39,6 @@ interface NavItemProps {
   isCollapsed: boolean;
 }
 
-// Component NavItem
 const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
   return (
     <NavLink
@@ -72,7 +70,28 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [logo, setLogo] = useState<string | null>(null);
   const { isEmployee } = useAuth();
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/GiaoDien");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const activeGiaoDien = data.find((item) => item.trangThai === 1);
+        if (activeGiaoDien && activeGiaoDien.logo) {
+          setLogo(activeGiaoDien.logo);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu logo:", error);
+      }
+    };
+
+    fetchLogo();
+  }, []);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -97,7 +116,6 @@ const Sidebar = () => {
   const categoryItems = [
     { to: '/loaisanpham', icon: Layers, label: 'Loại Sản Phẩm' }, 
     { to: '/thuonghieu', icon: Award, label: 'Thương Hiệu' },     
-
   ];
 
   const additionalNavItems = [
@@ -130,9 +148,17 @@ const Sidebar = () => {
       )}>
         {!isCollapsed && (
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-purple flex items-center justify-center">
-              <span className="text-white font-bold">U</span>
-            </div>
+            {logo ? (
+              <img
+                src={`data:image/png;base64,${logo}`}
+                alt="Logo"
+                className="h-8 w-8 rounded-md object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-md bg-purple flex items-center justify-center">
+                <span className="text-white font-bold">U</span>
+              </div>
+            )}
             <span className="font-semibold text-lg gradient-text">UltraStore</span>
           </div>
         )}
@@ -197,61 +223,7 @@ const Sidebar = () => {
             </div>
           ))}
         </div>
-
-        {/* <div className="space-y-1">
-          {!isCollapsed && (
-            <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
-              Management
-            </div>
-          )}
-          {additionalNavItems.map((item) => (
-            <NavItem
-              key={item.to}
-              to={item.to}
-              icon={item.icon}
-              label={item.label}
-              isCollapsed={isCollapsed}
-            />
-          ))}
-        </div>
-        
-        <div className="space-y-1">
-          {!isCollapsed && (
-            <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
-              Support
-            </div>
-          )}
-          {supportNavItems.map((item) => (
-            <NavItem
-              key={item.to}
-              to={item.to}
-              icon={item.icon}
-              label={item.label}
-              isCollapsed={isCollapsed}
-            />
-          ))}
-        </div> */}
       </nav>
-
-      {/* <div className={cn(
-        'px-3 py-4 border-t border-border',
-        isCollapsed ? 'text-center' : ''
-      )}>
-        <div className={cn(
-          'flex items-center gap-3 text-sm text-muted-foreground',
-          isCollapsed ? 'justify-center' : ''
-        )}>
-          <div className="h-8 w-8 rounded-full bg-purple/20 flex items-center justify-center">
-            <span className="text-purple font-medium">U</span>
-          </div>
-          {!isCollapsed && (
-            <div>
-              <p className="font-medium">User Admin</p>
-              <p className="text-xs">admin@example.com</p>
-            </div>
-          )}
-        </div>
-      </div> */}
     </aside>
   );
 };

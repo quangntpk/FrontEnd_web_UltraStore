@@ -28,10 +28,10 @@ const AdminLayout = () => {
 
   useEffect(() => {
     if (location.pathname === "/" && !sessionStorage.getItem("welcomed")) {
-      toast.success("Welcome to AdminPro", {
-        description: "Your powerful sales management dashboard",
-        duration: 5000,
-      });
+      // toast.success("Welcome to AdminPro", {
+      //   description: "Your powerful sales management dashboard",
+      //   duration: 5000,
+      // });
       sessionStorage.setItem("welcomed", "true");
     }
   }, [location.pathname]); // Dependency là location.pathname, không gây vòng lặp

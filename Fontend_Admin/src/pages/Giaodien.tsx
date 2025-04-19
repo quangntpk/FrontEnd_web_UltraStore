@@ -29,7 +29,7 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; children: React.Re
 }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 pt-10">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-10">
       <div className="bg-white p-6 rounded-lg shadow-lg relative w-full max-w-2xl h-auto max-h-[90vh] overflow-y-auto">
         <button
           className="absolute top-2 right-2 text-black hover:text-gray-700"
@@ -51,7 +51,7 @@ const ConfirmModal: React.FC<{
 }> = ({ isOpen, onClose, onConfirm, message }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg shadow-lg relative w-full max-w-2xl">
         <button
           onClick={onClose}
@@ -206,7 +206,7 @@ const CreateForm: React.FC<{ onSubmit: (formData: FormData) => void; onCancel: (
 
     const formData = new FormData();
     formData.append("TenGiaoDien", tenGiaoDien);
-    if (logo) formData.append("Logo", logo); // Đảm bảo tên trường khớp với backend
+    if (logo) formData.append("Logo", logo);
     if (avt) formData.append("Avt", avt);
     if (slider1) formData.append("Slider1", slider1);
     if (slider2) formData.append("Slider2", slider2);
@@ -214,7 +214,6 @@ const CreateForm: React.FC<{ onSubmit: (formData: FormData) => void; onCancel: (
     if (slider4) formData.append("Slider4", slider4);
     formData.append("TrangThai", "0");
 
-    // Log dữ liệu để kiểm tra
     for (const [key, value] of formData.entries()) {
       console.log(`${key}: ${value}`);
     }
@@ -303,7 +302,6 @@ const EditForm: React.FC<{
     if (slider3) formData.append("Slider3", slider3);
     if (slider4) formData.append("Slider4", slider4);
 
-    // Log dữ liệu để kiểm tra
     for (const [key, value] of formData.entries()) {
       console.log(`${key}: ${value}`);
     }
@@ -465,7 +463,6 @@ const Giaodien: React.FC = () => {
 
   const handleCreate = async (formData: FormData) => {
     try {
-      // Log dữ liệu gửi đi để debug
       for (const [key, value] of formData.entries()) {
         console.log(`${key}: ${value}`);
       }
@@ -494,7 +491,6 @@ const Giaodien: React.FC = () => {
   const handleUpdate = async (formData: FormData) => {
     if (!selectedGiaoDien) return;
     try {
-      // Log dữ liệu gửi đi để debug
       for (const [key, value] of formData.entries()) {
         console.log(`${key}: ${value}`);
       }

@@ -208,7 +208,7 @@ const ProductShowcase = () => {
           <Link to="/cart">
             <Button size="lg" className="gap-2">
               <ShoppingCart className="h-4 w-4" />
-              View Cart
+              Giỏ Hàng
             </Button>
           </Link>
         </div>

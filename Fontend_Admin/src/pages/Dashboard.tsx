@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Chart from "chart.js/auto";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-ChartJS.register(ArcElement, Tooltip, Legend);
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale } from "chart.js";
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale);
 
 const Dashboard = () => {
   const [timeFilter, setTimeFilter] = useState("daily");
@@ -17,12 +19,14 @@ const Dashboard = () => {
   const [monthlyData, setMonthlyData] = useState<any>(null);
   const [yearlyData, setYearlyData] = useState<any>(null);
   const [orderStatusData, setOrderStatusData] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("revenue"); // Track active tab
+  const [topProductsData, setTopProductsData] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("revenue");
 
   const dailyChartRef = useRef<Chart | null>(null);
   const monthlyChartRef = useRef<Chart | null>(null);
   const yearlyChartRef = useRef<Chart | null>(null);
   const orderStatusChartRef = useRef<Chart | null>(null);
+  const topProductsChartRef = useRef<Chart | null>(null);
 
   const years = Array.from({ length: 76 }, (_, i) => 2025 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -76,8 +80,8 @@ const Dashboard = () => {
         responsive: false,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: "top" as const },
-          tooltip: { mode: "index" as const, intersect: false },
+          legend: { position: "top" },
+          tooltip: { mode: "index", intersect: false },
         },
         scales: {
           x: { title: { display: true, text: "Thời gian" } },
@@ -93,45 +97,62 @@ const Dashboard = () => {
     });
   };
 
-  const createPieChart = () => {
-    const canvas = document.getElementById("orderStatusChart") as HTMLCanvasElement | null;
-    console.log("Canvas found for pie chart:", canvas);
+  const createPieChart = (canvasId: string, data: any[], title: string, chartRef: React.MutableRefObject<Chart | null>) => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    if (orderStatusChartRef.current) {
-      orderStatusChartRef.current.destroy();
+    if (chartRef.current) {
+      chartRef.current.destroy();
     }
 
-    console.log("Pie chart data:", orderStatusData);
-    orderStatusChartRef.current = new Chart(ctx, {
+    chartRef.current = new Chart(ctx, {
       type: "pie",
       data: {
-        labels: orderStatusData.map((item) => item.tenTrangThai),
+        labels: data.map((item) => item.tenTrangThai || item.name),
         datasets: [
           {
-            data: orderStatusData.map((item) => item.tongDonHang),
-            backgroundColor: [
-              "#FF6384", // Chưa xác nhận
-              "#36A2EB", // Đang xử lý
-              "#FFCE56", // Đang giao
-              "#4BC0C0", // Hoàn thành
-              "#9966FF", // Đã hủy
-            ],
+            data: data.map((item) => item.tongDonHang || item.soLuongDaBan),
+            backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40", "#FFCD56", "#4BC0C0", "#36A2EB", "#FF6384"],
             hoverOffset: 4,
+            borderWidth: 2,
+            borderColor: "#fff",
           },
         ],
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { position: "top" as const },
-          tooltip: {
-            callbacks: {
-              label: (context) => `${context.label}: ${context.raw} đơn hàng`,
+          legend: {
+            position: "top",
+            labels: {
+              font: { size: 14 },
+              padding: 20,
             },
+          },
+          tooltip: {
+            backgroundColor: "rgba(0,0,0,0.8)",
+            cornerRadius: 8,
+            callbacks: {
+              label: (context) => {
+                const item = data[context.dataIndex];
+                if (item.statusBreakdown) {
+                  return [
+                    `${item.name}: ${item.soLuongDaBan} sản phẩm`,
+                    ...item.statusBreakdown.map((b: any) => `${b.status}: ${b.soLuong} (${b.doanhThu.toLocaleString()} VND)`),
+                  ];
+                }
+                return `${item.tenTrangThai}: ${item.tongDonHang} đơn hàng`;
+              },
+            },
+          },
+          title: {
+            display: true,
+            text: title,
+            font: { size: 18, weight: "bold" },
+            padding: 20,
           },
         },
       },
@@ -213,7 +234,6 @@ const Dashboard = () => {
       const response = await fetch(`${API_BASE_URL}/OrderStatus`);
       if (!response.ok) throw new Error("Failed to fetch order status statistics");
       const data = await response.json();
-      console.log("Fetched order status data:", data);
       setOrderStatusData(data);
     } catch (error) {
       console.error("Error fetching order status statistics:", error);
@@ -221,19 +241,43 @@ const Dashboard = () => {
     }
   };
 
+  const getTopProductsStatistics = async () => {
+    let url = `${API_BASE_URL}/TopProducts`;
+    if (timeFilter === "daily") {
+      const [year, month, day] = dailyDate.split("-");
+      url += `?year=${year}&month=${month}&day=${day}`;
+    } else if (timeFilter === "monthly") {
+      url += `?year=${monthlyYear}&month=${monthlyMonth}`;
+    } else if (timeFilter === "yearly") {
+      url += `?year=${yearlyYear}`;
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch top products statistics");
+      const data = await response.json();
+      setTopProductsData(data);
+    } catch (error) {
+      console.error("Error fetching top products statistics:", error);
+      setTopProductsData([]);
+    }
+  };
+
   useEffect(() => {
     if (timeFilter === "daily") getDailyStatistics();
     else if (timeFilter === "monthly") getMonthlyStatistics();
     else if (timeFilter === "yearly") getYearlyStatistics();
-    getOrderStatusStatistics(); // Fetch order status data on mount or filter change
+    getOrderStatusStatistics();
+    getTopProductsStatistics();
   }, [timeFilter, dailyDate, monthlyYear, monthlyMonth, yearlyYear]);
 
   useEffect(() => {
-    console.log("Active tab:", activeTab, "Order status data:", orderStatusData);
     if (activeTab === "orderStatus" && orderStatusData.length > 0) {
-      createPieChart();
+      createPieChart("orderStatusChart", orderStatusData, "Thống kê trạng thái đơn hàng", orderStatusChartRef);
+    } else if (activeTab === "topProducts" && topProductsData.length > 0) {
+      createPieChart("topProductsChart", topProductsData, "Top Sản Phẩm Bán Chạy", topProductsChartRef);
     }
-  }, [activeTab, orderStatusData]);
+  }, [activeTab, orderStatusData, topProductsData]);
 
   return (
     <div className="space-y-6 p-6">
@@ -243,11 +287,11 @@ const Dashboard = () => {
         <TabsList>
           <TabsTrigger value="revenue">Danh sách doanh thu</TabsTrigger>
           <TabsTrigger value="orderStatus">Danh sách trạng thái đơn hàng</TabsTrigger>
+          <TabsTrigger value="topProducts">Sản phẩm bán chạy</TabsTrigger>
         </TabsList>
 
         <TabsContent value="revenue">
           <div className="space-y-6">
-           
             <div className="flex items-center gap-4">
               <label htmlFor="timeFilter" className="font-medium">Chọn khoảng thời gian:</label>
               <Select value={timeFilter} onValueChange={setTimeFilter}>
@@ -307,7 +351,9 @@ const Dashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {years.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -317,7 +363,9 @@ const Dashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {months.map((month) => (
-                          <SelectItem key={month} value={month.toString()}>Tháng {month}</SelectItem>
+                          <SelectItem key={month} value={month.toString()}>
+                            Tháng {month}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -352,7 +400,9 @@ const Dashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {years.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -378,19 +428,234 @@ const Dashboard = () => {
 
         <TabsContent value="orderStatus">
           <div className="space-y-6">
-            <Card className="mt-4">
+            <Card className="mt-9">
               <CardHeader>
                 <CardTitle>Thống kê trạng thái đơn hàng</CardTitle>
               </CardHeader>
               <CardContent>
-                <canvas
-                  id="orderStatusChart"
-                  width="400"
-                  height="400"
-                  style={{ margin: "auto", display: "block" }}
-                />
+                <canvas id="orderStatusChart" width="500" height="500" style={{ margin: "auto", display: "block" }} />
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="topProducts">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <label htmlFor="timeFilter" className="font-medium">Chọn khoảng thời gian:</label>
+              <Select value={timeFilter} onValueChange={setTimeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Chọn khoảng thời gian" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Theo ngày</SelectItem>
+                  <SelectItem value="monthly">Theo tháng</SelectItem>
+                  <SelectItem value="yearly">Theo năm</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {timeFilter === "daily" && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle>Sản phẩm bán chạy theo ngày</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 mb-4">
+                    <input
+                      type="date"
+                      value={dailyDate}
+                      onChange={(e) => setDailyDate(e.target.value)}
+                      className="border rounded-md p-2"
+                      style={{ width: "350px" }}
+                    />
+                    <Button onClick={getTopProductsStatistics}>Thống kê</Button>
+                  </div>
+                  <canvas
+                    id="topProductsChart"
+                    width="500" // Điều chỉnh từ 600 xuống 500 để khớp với orderStatus
+                    height="500" // Điều chỉnh từ 600 xuống 500 để khớp với orderStatus
+                    style={{ margin: "auto", display: "block" }}
+                  />
+                  {topProductsData.length > 0 && (
+                    <div className="mt-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tên sản phẩm</TableHead>
+                            <TableHead>Thương hiệu</TableHead>
+                            <TableHead>Chất liệu</TableHead>
+                            <TableHead>Số lượng đã bán</TableHead>
+                            <TableHead>Doanh thu</TableHead>
+                            <TableHead>Trạng thái</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {topProductsData.map((product) => (
+                            <TableRow key={product.id}>
+                              <TableCell>{product.name}</TableCell>
+                              <TableCell>{product.thuongHieu}</TableCell>
+                              <TableCell>{product.chatLieu}</TableCell>
+                              <TableCell>{product.soLuongDaBan}</TableCell>
+                              <TableCell>{product.doanhThu.toLocaleString()} VND</TableCell>
+                              <TableCell>
+                                {product.statusBreakdown.map((b: any, index: number) => (
+                                  <div key={index}>
+                                    {b.status}: {b.soLuong} (Doanh thu: {b.doanhThu.toLocaleString()} VND)
+                                  </div>
+                                ))}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {timeFilter === "monthly" && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle>Sản phẩm bán chạy theo tháng</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 mb-4">
+                    <Select value={monthlyYear} onValueChange={setMonthlyYear}>
+                      <SelectTrigger className="w-[350px]">
+                        <SelectValue placeholder="Chọn năm" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={monthlyMonth} onValueChange={setMonthlyMonth}>
+                      <SelectTrigger className="w-[350px]">
+                        <SelectValue placeholder="Chọn tháng" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month) => (
+                          <SelectItem key={month} value={month.toString()}>
+                            Tháng {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={getTopProductsStatistics}>Thống kê</Button>
+                  </div>
+                  <canvas
+                    id="topProductsChart"
+                    width="500" // Điều chỉnh từ 600 xuống 500 để khớp với orderStatus
+                    height="500" // Điều chỉnh từ 600 xuống 500 để khớp với orderStatus
+                    style={{ margin: "auto", display: "block" }}
+                  />
+                  {topProductsData.length > 0 && (
+                    <div className="mt-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tên sản phẩm</TableHead>
+                            <TableHead>Thương hiệu</TableHead>
+                            <TableHead>Chất liệu</TableHead>
+                            <TableHead>Số lượng đã bán</TableHead>
+                            <TableHead>Doanh thu</TableHead>
+                            <TableHead>Trạng thái</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {topProductsData.map((product) => (
+                            <TableRow key={product.id}>
+                              <TableCell>{product.name}</TableCell>
+                              <TableCell>{product.thuongHieu}</TableCell>
+                              <TableCell>{product.chatLieu}</TableCell>
+                              <TableCell>{product.soLuongDaBan}</TableCell>
+                              <TableCell>{product.doanhThu.toLocaleString()} VND</TableCell>
+                              <TableCell>
+                                {product.statusBreakdown.map((b: any, index: number) => (
+                                  <div key={index}>
+                                    {b.status}: {b.soLuong} (Doanh thu: {b.doanhThu.toLocaleString()} VND)
+                                  </div>
+                                ))}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {timeFilter === "yearly" && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle>Sản phẩm bán chạy theo năm</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 mb-4">
+                    <Select value={yearlyYear} onValueChange={setYearlyYear}>
+                      <SelectTrigger className="w-[350px]">
+                        <SelectValue placeholder="Chọn năm" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={getTopProductsStatistics}>Thống kê</Button>
+                  </div>
+                  <canvas
+                    id="topProductsChart"
+                    width="500" // Giữ nguyên 500 để khớp với orderStatus
+                    height="500" // Giữ nguyên 500 để khớp với orderStatus
+                    style={{ margin: "auto", display: "block" }}
+                  />
+                  {topProductsData.length > 0 && (
+                    <div className="mt-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tên sản phẩm</TableHead>
+                            <TableHead>Thương hiệu</TableHead>
+                            <TableHead>Chất liệu</TableHead>
+                            <TableHead>Số lượng đã bán</TableHead>
+                            <TableHead>Doanh thu</TableHead>
+                            <TableHead>Trạng thái</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {topProductsData.map((product) => (
+                            <TableRow key={product.id}>
+                              <TableCell>{product.name}</TableCell>
+                              <TableCell>{product.thuongHieu}</TableCell>
+                              <TableCell>{product.chatLieu}</TableCell>
+                              <TableCell>{product.soLuongDaBan}</TableCell>
+                              <TableCell>{product.doanhThu.toLocaleString()} VND</TableCell>
+                              <TableCell>
+                                {product.statusBreakdown.map((b: any, index: number) => (
+                                  <div key={index}>
+                                    {b.status}: {b.soLuong} (Doanh thu: {b.doanhThu.toLocaleString()} VND)
+                                  </div>
+                                ))}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
       </Tabs>

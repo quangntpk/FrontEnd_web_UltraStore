@@ -25,14 +25,37 @@ import {
 import {
   Search,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Upload
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import toast, { Toaster } from "react-hot-toast";
 
+// Định nghĩa interface cho Voucher và Coupon
+interface Coupon {
+  id: number;
+  maNhap: string;
+  trangThai: number;
+  maVoucher: number;
+}
+
+interface Voucher {
+  maVoucher: number;
+  tenVoucher: string;
+  giaTri: number;
+  moTa: string | null;
+  ngayBatDau: string;
+  ngayKetThuc: string;
+  hinhAnh: string | null;
+  dieuKien: number;
+  soLuong: number;
+  trangThai: number;
+  coupons: Coupon[];
+}
+
 // Hàm định dạng ngày giờ
-const formatDateTime = (dateString) => {
+const formatDateTime = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: '2-digit',
@@ -42,12 +65,12 @@ const formatDateTime = (dateString) => {
 
 const Vouchers = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [vouchers, setVouchers] = useState([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
-  const [voucherToDelete, setVoucherToDelete] = useState(null);
+  const [voucherToDelete, setVoucherToDelete] = useState<Voucher | null>(null);
   const [openDetailModal, setOpenDetailModal] = useState(false);
-  const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [newVoucher, setNewVoucher] = useState({
@@ -61,7 +84,9 @@ const Vouchers = () => {
     hinhAnh: '',
     trangThai: 0,
   });
-  const [editVoucher, setEditVoucher] = useState(null);
+  const [editVoucher, setEditVoucher] = useState<Voucher | null>(null);
+  const [isDraggingCreate, setIsDraggingCreate] = useState(false);
+  const [isDraggingEdit, setIsDraggingEdit] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const vouchersPerPage = 8;
@@ -71,10 +96,11 @@ const Vouchers = () => {
       setLoading(true);
       const response = await fetch(`http://localhost:5261/api/Voucher`);
       if (!response.ok) throw new Error('Không thể lấy dữ liệu voucher');
-      const data = await response.json();
+      const data: Voucher[] = await response.json();
       setVouchers(data);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách voucher:', error);
+      toast.error('Có lỗi xảy ra khi tải danh sách voucher.');
     } finally {
       setLoading(false);
     }
@@ -162,6 +188,8 @@ const Vouchers = () => {
   };
 
   const editVoucherSubmit = async () => {
+    if (!editVoucher) return;
+
     const today = new Date().toISOString().split('T')[0];
     if (editVoucher.ngayBatDau < today && new Date(editVoucher.ngayBatDau).toISOString().split('T')[0] !== today) {
       toast.error("Ngày bắt đầu không được trước ngày hôm nay!");
@@ -184,12 +212,12 @@ const Vouchers = () => {
         body: JSON.stringify({
           maVoucher: editVoucher.maVoucher,
           tenVoucher: editVoucher.tenVoucher,
-          giaTri: parseInt(editVoucher.giaTri),
+          giaTri: parseInt(editVoucher.giaTri.toString()),
           moTa: editVoucher.moTa || null,
           ngayBatDau: new Date(editVoucher.ngayBatDau).toISOString(),
           ngayKetThuc: new Date(editVoucher.ngayKetThuc).toISOString(),
-          dieuKien: parseFloat(editVoucher.dieuKien),
-          soLuong: parseInt(editVoucher.soLuong),
+          dieuKien: parseFloat(editVoucher.dieuKien.toString()),
+          soLuong: parseInt(editVoucher.soLuong.toString()),
           trangThai: editVoucher.trangThai,
           hinhAnh: editVoucher.hinhAnh || null,
         }),
@@ -228,17 +256,17 @@ const Vouchers = () => {
   const currentVouchers = filteredVouchers.slice(indexOfFirstVoucher, indexOfLastVoucher);
   const totalPages = Math.ceil(filteredVouchers.length / vouchersPerPage);
 
-  const handleDeleteClick = (voucher) => {
+  const handleDeleteClick = (voucher: Voucher) => {
     setVoucherToDelete(voucher);
     setOpenDeleteModal(true);
   };
 
-  const handleDetailClick = (voucher) => {
+  const handleDetailClick = (voucher: Voucher) => {
     setSelectedVoucher(voucher);
     setOpenDetailModal(true);
   };
 
-  const handleEditClick = (voucher) => {
+  const handleEditClick = (voucher: Voucher) => {
     setEditVoucher({
       ...voucher,
       ngayBatDau: new Date(voucher.ngayBatDau).toISOString().split('T')[0],
@@ -247,41 +275,97 @@ const Vouchers = () => {
     setOpenEditModal(true);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewVoucher({ ...newVoucher, [name]: value });
   };
 
-  const handleEditInputChange = (e) => {
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditVoucher({ ...editVoucher, [name]: value });
+    setEditVoucher({ ...editVoucher!, [name]: value });
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const base64String = reader.result.split(',')[1];
-          setNewVoucher({ ...newVoucher, hinhAnh: base64String });
-        }
-      };
-      reader.readAsDataURL(file);
+  // Xử lý kéo thả cho modal thêm
+  const handleDragOverCreate = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingCreate(true);
+  };
+
+  const handleDragLeaveCreate = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingCreate(false);
+  };
+
+  const handleDropCreate = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingCreate(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      handleImageChangeCreate(file);
+    } else {
+      toast.error("Vui lòng chọn một tệp hình ảnh!");
     }
   };
 
-  const handleEditImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const base64String = reader.result.split(',')[1];
-          setEditVoucher({ ...editVoucher, hinhAnh: base64String });
-        }
-      };
-      reader.readAsDataURL(file);
+  const handleImageChangeCreate = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        const base64String = reader.result.split(',')[1];
+        setNewVoucher({ ...newVoucher, hinhAnh: base64String });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChangeCreate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      handleImageChangeCreate(file);
+    } else {
+      toast.error("Vui lòng chọn một tệp hình ảnh!");
+    }
+  };
+
+  // Xử lý kéo thả cho modal sửa
+  const handleDragOverEdit = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingEdit(true);
+  };
+
+  const handleDragLeaveEdit = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingEdit(false);
+  };
+
+  const handleDropEdit = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingEdit(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      handleImageChangeEdit(file);
+    } else {
+      toast.error("Vui lòng chọn một tệp hình ảnh!");
+    }
+  };
+
+  const handleImageChangeEdit = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        const base64String = reader.result.split(',')[1];
+        setEditVoucher({ ...editVoucher!, hinhAnh: base64String });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      handleImageChangeEdit(file);
+    } else {
+      toast.error("Vui lòng chọn một tệp hình ảnh!");
     }
   };
 
@@ -364,7 +448,7 @@ const Vouchers = () => {
                     )}
                     <div><strong>ID:</strong> {item.maVoucher}</div>
                     <div><strong>Giá trị:</strong> {item.giaTri} %</div>
-                    <div><strong>Hết hạn:</strong> {new Date(item.ngayKetThuc).toLocaleDateString()}</div>
+                    <div><strong>Hết hạn:</strong> {formatDateTime(item.ngayKetThuc)}</div>
                     <div>
                       <strong>Trạng thái:</strong>
                       <span
@@ -538,7 +622,11 @@ const Vouchers = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
                   {selectedVoucher.hinhAnh ? (
-                    <img src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`} alt={selectedVoucher.tenVoucher} className="w-24 h-24 object-cover rounded mt-1 border" />
+                    <img
+                      src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
+                      alt={selectedVoucher.tenVoucher}
+                      className="w-24 h-24 object-cover rounded mt-1 border"
+                    />
                   ) : (
                     <Input value="Chưa có hình ảnh" disabled className="mt-1 bg-gray-50" />
                   )}
@@ -633,9 +721,47 @@ const Vouchers = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
-                <Input name="hinhAnh" type="file" accept="image/*" onChange={handleImageChange} />
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 text-center ${
+                    isDraggingCreate ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                  }`}
+                  onDragOver={handleDragOverCreate}
+                  onDragLeave={handleDragLeaveCreate}
+                  onDrop={handleDropCreate}
+                >
+                  {newVoucher.hinhAnh ? (
+                    <img
+                      src={`data:image/jpeg;base64,${newVoucher.hinhAnh}`}
+                      alt="Preview"
+                      className="h-20 w-20 mx-auto object-cover rounded"
+                    />
+                  ) : (
+                    <div>
+                      <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-600">
+                        Kéo và thả hình ảnh vào đây hoặc nhấp để chọn
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="fileInputCreate"
+                        onChange={handleFileInputChangeCreate}
+                      />
+                      <label htmlFor="fileInputCreate" className="cursor-pointer text-blue-500 hover:underline">
+                        Chọn tệp
+                      </label>
+                    </div>
+                  )}
+                </div>
                 {newVoucher.hinhAnh && (
-                  <img src={`data:image/jpeg;base64,${newVoucher.hinhAnh}`} alt="Preview" className="w-24 h-24 object-cover rounded mt-2" />
+                  <Button
+                    variant="outline"
+                    onClick={() => setNewVoucher({ ...newVoucher, hinhAnh: '' })}
+                    className="w-full mt-2"
+                  >
+                    Xóa hình ảnh
+                  </Button>
                 )}
               </div>
             </div>
@@ -707,9 +833,47 @@ const Vouchers = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
-                  <Input name="hinhAnh" type="file" accept="image/*" onChange={handleEditImageChange} />
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-4 text-center ${
+                      isDraggingEdit ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                    }`}
+                    onDragOver={handleDragOverEdit}
+                    onDragLeave={handleDragLeaveEdit}
+                    onDrop={handleDropEdit}
+                  >
+                    {editVoucher.hinhAnh ? (
+                      <img
+                        src={`data:image/jpeg;base64,${editVoucher.hinhAnh}`}
+                        alt="Preview"
+                        className="h-20 w-20 mx-auto object-cover rounded"
+                      />
+                    ) : (
+                      <div>
+                        <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-600">
+                          Kéo và thả hình ảnh vào đây hoặc nhấp để chọn
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="fileInputEdit"
+                          onChange={handleFileInputChangeEdit}
+                        />
+                        <label htmlFor="fileInputEdit" className="cursor-pointer text-blue-500 hover:underline">
+                          Chọn tệp
+                        </label>
+                      </div>
+                    )}
+                  </div>
                   {editVoucher.hinhAnh && (
-                    <img src={`data:image/jpeg;base64,${editVoucher.hinhAnh}`} alt="Preview" className="w-24 h-24 object-cover rounded mt-2" />
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditVoucher({ ...editVoucher, hinhAnh: '' })}
+                      className="w-full mt-2"
+                    >
+                      Xóa hình ảnh
+                    </Button>
                   )}
                 </div>
               </div>

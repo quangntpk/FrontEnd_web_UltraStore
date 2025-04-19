@@ -383,8 +383,8 @@ const handleVerifyOtp = async (e: React.FormEvent) => {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button variant="outline" type="button" className="hover-effect">
+              <div className="mt-6 flex justify-center gap-3">
+                <Button variant="outline" type="button" className="hover-effect" style={{ width: '400px' }}>
                   <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -394,13 +394,13 @@ const handleVerifyOtp = async (e: React.FormEvent) => {
                   </svg>
                   Google
                 </Button>
-                <Button variant="outline" type="button" className="hover-effect">
+                {/* <Button variant="outline" type="button" className="hover-effect">
                   <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                     <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" fill="#1877F2" />
                     <path d="M15.893 14.89l.443-2.89h-2.773v-1.876c0-.791.387-1.562 1.63-1.562h1.26v-2.46s-1.144-.195-2.238-.195c-2.285 0-3.777 1.384-3.777 3.89V12h-2.54v2.89h2.54v6.988C11.331 21.965 11.664 22 12 22s.669-.035.997-.082v-6.988h2.896z" fill="white" />
                   </svg>
                   Facebook
-                </Button>
+                </Button> */}
               </div>
             </div>
             )}

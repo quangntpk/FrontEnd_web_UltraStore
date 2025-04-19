@@ -79,7 +79,7 @@ const Header = ({ title }: HeaderProps) => {
       });
 
       // Chuyển hướng theo redirectTo hoặc mặc định về login
-      window.location.href = response.data.redirectTo || 'http://localhost:8080/login?logout=true';
+      window.location.href = response.data.redirectTo || 'http://localhost:8081/login?logout=true';
     } catch (error) {
       console.error('Đăng xuất thất bại:', error);
       toast.error('Đăng xuất thất bại. Vui lòng thử lại.');
@@ -88,18 +88,20 @@ const Header = ({ title }: HeaderProps) => {
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-6 sticky top-0 bg-background/80 backdrop-blur-sm z-20">
-      <h1 className="text-xl font-semibold">{title}</h1>
+      <h1 className="text-xl font-semibold">{}</h1> 
+         {/* title */}
       <div className="flex items-center gap-4 my-[20px]">
         <div className="relative max-w-xs w-72 hidden md:block">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          {/* <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search..."
             className="pl-8 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-ring"
-          />
+          /> */}
         </div>
+       Xin chào: {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).hoTen : 'admin@example.com'} 
 
-        <DropdownMenu>
+        {/* <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
@@ -131,7 +133,7 @@ const Header = ({ title }: HeaderProps) => {
             </div>
           </DropdownMenuContent>
 
-        </DropdownMenu>
+        </DropdownMenu> */}
         
 
 
@@ -155,17 +157,17 @@ const Header = ({ title }: HeaderProps) => {
                 <DropdownMenuItem asChild>
                   <Link to="/ProfileAdmin" className="flex items-center w-full">
                     <User className="mr-2 h-4 w-4" />
-                    <span>My Account</span>
+                    <span>Tài khoản của tôi</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                {/* <DropdownMenuItem>
                   <SettingsIcon className="mr-2 h-4 w-4" />
                   <span>Settings</span>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>Đăng xuất</span>
                 </DropdownMenuItem>
               </>
             )}
