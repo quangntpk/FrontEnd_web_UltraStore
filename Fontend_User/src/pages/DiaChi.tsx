@@ -608,7 +608,7 @@ const DiaChi = () => {
 
   return (
     <div className="container mx-auto p-4 flex justify-center items-center min-h-screen">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-4xl">
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-4xl">  
         <div className="flex justify-center mb-8">
           <Button
             onClick={() => setActiveTab("add")}

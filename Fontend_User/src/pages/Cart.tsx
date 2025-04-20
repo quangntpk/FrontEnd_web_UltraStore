@@ -391,8 +391,8 @@ const CartPage = () => {
         );
         setFinalAmount(subtotal + shippingFee);
       } catch (error) {
-        toast.error("Không thể tải dữ liệu giỏ hàng");
-        console.error("Error fetching cart:", error);
+        // toast.error("Không thể tải dữ liệu giỏ hàng");
+        // console.error("Error fetching cart:", error);
       }
     };
 
@@ -1139,7 +1139,7 @@ const handleSubmitCheckout = async (e: React.FormEvent) => {
                             className="ml-2"
                             onClick={() => setSelectedCombo(combo)}
                           >
-                            Edit
+                            Cập nhật
                           </Button>
                           <button
                             onClick={() => handleRemoveCombo(combo.idCombo)}

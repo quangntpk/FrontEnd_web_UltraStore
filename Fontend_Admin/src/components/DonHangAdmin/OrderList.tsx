@@ -53,7 +53,9 @@ const OrderList: React.FC = () => {
     const fetchOrders = async () => {
       try {
         const response = await axios.get('http://localhost:5261/api/orders');
+        console.log(response.data);
         setOrders(response.data);
+        console.log(response.data);
         setFilteredOrders(response.data.filter((order: Order) => order.trangThaiDonHang === 3));
       } catch (error) {
         console.error('Error fetching orders:', error);

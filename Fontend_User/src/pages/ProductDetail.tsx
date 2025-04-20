@@ -8,6 +8,7 @@ import Swal from "sweetalert2";
 import InpaintForm from "./Inpaint";
 import Comment from "./Comment";
 import ChonSize from "./ChonSize";
+import ProductShowcase from "@/components/ProductShowcase";
 
 // Component thông báo tùy chỉnh
 const Notification = ({ message, type, onClose }) => {
@@ -51,7 +52,10 @@ const ProductDetail = () => {
 
   const showNotification = (message, type) => setNotification({ message, type });
   const closeNotification = () => setNotification(null);
-
+  const formatter = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  });
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId) {
@@ -310,7 +314,7 @@ const ProductDetail = () => {
                   </div>
                   <span className="text-sm font-medium">{baseProduct.rating}</span>
                 </div> */}
-                <p className="text-2xl font-medium text-primary mb-4">{selectedPrice} VND</p>
+                <p className="text-2xl font-medium text-primary mb-4">{formatter.format(selectedPrice)} </p>
                 <p className="text-muted-foreground">{baseProduct.description}</p>
               </div>
               <div>
@@ -431,6 +435,8 @@ const ProductDetail = () => {
           </div>
           <InpaintForm />
           <Comment productId={productId} /> {/* Không cần reloadComments */}
+          <br></br>
+          <ProductShowcase />
         </div>
       </div>
       <Footer />

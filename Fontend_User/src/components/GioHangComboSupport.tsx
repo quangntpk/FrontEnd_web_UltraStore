@@ -65,10 +65,10 @@ const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupp
         const updatedCombo = { ...combo, sanPhamList: updatedSanPhamList };
         onUpdateCombo(updatedCombo);
 
-        toast.success("Combo version removed successfully");
+        toast.success("Combo đã được gỡ bỏ thành công");
         await Swal.fire({
-          title: "Deleted!",
-          text: "The combo version has been removed.",
+          title: "Xác nhận xóa!",
+          // text: "The combo version has been removed.",
           icon: "success",
         });
       } catch (error) {
@@ -140,7 +140,7 @@ const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupp
   return (
     <div className="p-6 bg-white rounded-lg shadow-lg w-full max-w-7xl mx-auto" style={{width: "1200px"}}>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Edit {combo.tenCombo}</h2>
+        <h2 className="text-xl font-semibold">Cập nhật {combo.tenCombo}</h2>
         <Button variant="outline" size="sm" onClick={onClose}>
           <X size={16} className="mr-2" /> Đóng
         </Button>
@@ -162,7 +162,8 @@ const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupp
                   <X size={16} />
                 </button>
                 <h4 className="font-medium mb-2">
-                  Combo {currentSlide * itemsPerSlide + index + 1} (Version: {versionGroup.version})
+                  Combo {currentSlide * itemsPerSlide + index + 1} 
+                  {/* (Version: {versionGroup.version}) */}
                 </h4>
                 <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                   {versionGroup.items.map((item, itemIndex) => {

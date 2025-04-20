@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
 import axios from "axios";
 
-
 const navItems = [
   { name: "Trang Chủ", path: "/" },
   { name: "Cửa Hàng", path: "/products" },
@@ -20,6 +19,10 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [userName, setUserName] = useState(() => {
+    const user = localStorage.getItem("user");
+    return user ? JSON.parse(user).fullName : "";
+  }); // Extract fullName from user object
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,16 +33,17 @@ const Navigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Lắng nghe sự kiện storageChange để cập nhật trạng thái đăng nhập
+  // Lắng nghe sự kiện storageChange để cập nhật trạng thái đăng nhập và tên người dùng
   useEffect(() => {
     const handleStorageChange = () => {
       const token = localStorage.getItem("token");
-      setIsLoggedIn(!!token); // Cập nhật trạng thái đăng nhập
+      const user = localStorage.getItem("user");
+      setIsLoggedIn(!!token);
+      setUserName(user ? JSON.parse(user).fullName : "");
     };
 
     window.addEventListener("storageChange", handleStorageChange);
 
-    // Cleanup khi component unmount
     return () => {
       window.removeEventListener("storageChange", handleStorageChange);
     };
@@ -62,10 +66,10 @@ const Navigation = () => {
     localStorage.removeItem("userId");
     localStorage.removeItem("user");
 
-    // Phát sự kiện storageChange khi đăng xuất
     window.dispatchEvent(new Event("storageChange"));
 
     setIsLoggedIn(false);
+    setUserName("");
     toast.success("Đăng xuất thành công 🎉\nBạn đã đăng xuất khỏi tài khoản.", {
       position: "top-right",
       autoClose: 3000,
@@ -75,7 +79,6 @@ const Navigation = () => {
       draggable: true,
       className: "bg-green-500 text-white border border-green-700 shadow-lg p-4 rounded-md",
     });
-    console.log("Toast should be displayed");
     navigate("/login");
     setIsOpen(false);
   };
@@ -115,6 +118,11 @@ const Navigation = () => {
 
           {isLoggedIn ? (
             <>
+              <Link to="/profile">
+                <Button variant="outline" size="sm" className="hover-effect">
+                  <User className="mr-2 h-4 w-4" /> Xin chào {userName || "Khách"}
+                </Button>
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
@@ -123,11 +131,6 @@ const Navigation = () => {
               >
                 <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
               </Button>
-              <Link to="/profile">
-                <Button variant="outline" size="sm" className="hover-effect">
-                  <User className="mr-2 h-4 w-4" /> Tài khoản
-                </Button>
-              </Link>
             </>
           ) : (
             <>
@@ -248,7 +251,7 @@ const Navigation = () => {
                   onClick={() => setIsOpen(false)}
                 >
                   <Button variant="outline" className="w-full hover-effect">
-                    <User className="mr-2 h-4 w-4" /> Tài khoản
+                    <User className="mr-2 h-4 w-4" /> Xin chào {userName}
                   </Button>
                 </Link>
               </>

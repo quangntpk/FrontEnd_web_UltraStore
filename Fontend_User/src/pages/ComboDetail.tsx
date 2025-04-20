@@ -19,7 +19,10 @@ const ComboDetail = () => {
   const [colorSelected, setColorSelected] = useState({});
   const [isLiked, setIsLiked] = useState(false); // Thêm trạng thái yêu thích
   const [likedId, setLikedId] = useState(null); // Lưu ID yêu thích
-
+  const formatter = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  });
   useEffect(() => {
     const fetchCombo = async () => {
       if (!id) {
@@ -382,12 +385,12 @@ const ComboDetail = () => {
             <div className="flex flex-col space-y-6">
               <h1 className="text-3xl md:text-4xl font-medium mb-6 gradient-text">{combo.name}</h1>
               <div>
-                <p className="text-2xl font-medium text-primary mb-4">{combo.price.toFixed()} VND</p>
+                <p className="text-2xl font-medium text-primary mb-4">{formatter.format(combo.price)}</p>
                 <p className="text-muted-foreground">{combo.description}</p>
               </div>
 
               {combo.products.map((product) => (
-                <div key={product.id} className="border p-4 rounded-lg">
+                <div key={product.id} className="border p-4 rounded-lg" style={{scale: "90%"}}>
                   <h3 className="text-lg font-medium mb-2">{product.name}</h3>
 
                   <div className="space-y-4">
@@ -415,6 +418,7 @@ const ComboDetail = () => {
                             src={image}
                             alt={`${product.name} thumbnail ${index + 1}`}
                             className="w-full h-full object-cover"
+                            style={{maxWidth: "150px"}}
                           />
                         </button>
                       ))}

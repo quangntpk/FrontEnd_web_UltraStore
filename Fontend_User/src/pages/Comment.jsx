@@ -271,7 +271,7 @@ const Comments = ({ productId }) => {
           <span className="text-lg font-medium">{averageRating.toFixed(1)} / 5</span>
         </div>
       </div>
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+      { <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <h3 className="text-lg font-medium mb-4">Viết bình luận của bạn</h3>
         <div className="flex items-center mb-4">
           <span className="mr-2">Đánh giá:</span>
@@ -299,7 +299,7 @@ const Comments = ({ productId }) => {
         >
           Gửi Bình Luận
         </button>
-      </div>
+      </div> }
       <div className="space-y-4 max-h-96 overflow-y-auto">
         {comments.length === 0 ? (
           <p className="text-muted-foreground">Chưa có bình luận nào.</p>
